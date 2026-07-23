@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>500</title>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0E1A2B">
+<meta name="description" content="Bid table and score sheet for the card game 500.">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="500">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;1,6..96,400&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1A2B;
+    --ink-2:#17273D;
+    --bone:#EFE9DC;
+    --bone-2:#E2DACA;
+    --red:#B93B2E;
+    --black:#1B2A44;
+    --gold:#B8912F;
+    --plum:#6F5497;
+    --line:rgba(14,26,43,.16);
+    --line-lt:rgba(239,233,220,.18);
+    --disp:'Bodoni Moda',Georgia,'Times New Roman',serif;
+    --ui:'Archivo',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-l:env(safe-area-inset-left,0px);
+    --safe-r:env(safe-area-inset-right,0px);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  html{background:var(--ink);-webkit-text-size-adjust:100%}
+  body{
+    background:var(--ink);
+    color:var(--bone);
+    font-family:var(--ui);
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 calc(56px + var(--safe-b));
+    overscroll-behavior-y:none;
+  }
+  button,input{font-family:inherit;touch-action:manipulation}
+  button{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  .wrap{max-width:660px;margin:0 auto;padding:0 calc(16px + var(--safe-l)) 0 calc(16px + var(--safe-r))}
+
+  /* ---------- masthead ---------- */
+  .mast{
+    position:relative;
+    padding:calc(22px + var(--safe-t)) 0 22px;
+    border-bottom:1px solid var(--line-lt);
+    overflow:hidden;
+  }
+  .mast::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      repeating-linear-gradient(45deg,rgba(239,233,220,.05) 0 1px,transparent 1px 11px),
+      repeating-linear-gradient(-45deg,rgba(239,233,220,.05) 0 1px,transparent 1px 11px);
+    pointer-events:none;
+  }
+  .mast .wrap{position:relative}
+  .mast-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .logo{font-family:var(--disp);font-size:44px;line-height:.9;letter-spacing:-.02em}
+  .logo em{font-style:italic;font-weight:400}
+  .kicker{
+    font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    color:rgba(239,233,220,.55);font-weight:600;
+  }
+
+  /* ---------- scoreboard ---------- */
+  .board{display:grid;gap:10px;margin:18px 0 6px}
+  .side{
+    background:var(--bone);color:var(--ink);
+    border-radius:3px;padding:12px 14px;
+    display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;
+  }
+  .side.lead{box-shadow:inset 0 0 0 2px var(--gold)}
+  .side-name{
+    font-weight:600;font-size:16px;border:0;background:transparent;
+    color:var(--ink);width:100%;padding:2px 0;
+    border-bottom:1px dashed transparent;border-radius:0;
+  }
+  .side-name:hover{border-bottom-color:var(--line)}
+  .side-name:focus{outline:2px solid var(--gold);outline-offset:2px}
+  .side-total{font-family:var(--disp);font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+  .side-total.neg{color:var(--red)}
+  .track{grid-column:1/-1;height:3px;background:var(--bone-2);position:relative;border-radius:2px}
+  .track span{position:absolute;top:0;bottom:0;left:0;background:var(--ink);border-radius:2px}
+  .track span.neg{background:var(--red)}
+  .meta{grid-column:1/-1;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:rgba(14,26,43,.5)}
+
+  .banner{
+    margin:12px 0 0;padding:12px 14px;border-radius:3px;
+    background:var(--gold);color:var(--ink);font-weight:700;font-size:14px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+  .banner.out{background:var(--red);color:var(--bone)}
+
+  /* ---------- section headings ---------- */
+  .head{display:flex;align-items:center;gap:12px;margin:30px 0 12px}
+  .head h2{font-family:var(--disp);font-weight:400;font-size:20px;margin:0;letter-spacing:.01em}
+  .head .rule{flex:1;height:1px;background:var(--line-lt)}
+  .head .note{font-family:var(--mono);font-size:10px;color:rgba(239,233,220,.45);letter-spacing:.06em}
+
+  /* ---------- bid table ---------- */
+  .sheet{background:var(--bone);color:var(--ink);border-radius:3px;padding:12px;overflow:hidden}
+  table.bids{width:100%;border-collapse:collapse;table-layout:fixed}
+  table.bids th{
+    font-family:var(--ui);font-size:11px;font-weight:700;padding:4px 0 8px;
+    letter-spacing:.1em;text-transform:uppercase;color:rgba(14,26,43,.45);
+  }
+  table.bids th.suit{font-size:19px;letter-spacing:0}
+  th.s-spades,th.s-clubs{color:var(--black)}
+  th.s-diamonds,th.s-hearts{color:var(--red)}
+  th.s-notrump{color:var(--gold);font-size:11px}
+  table.bids td{padding:2px}
+  td.lvl{font-family:var(--disp);font-size:19px;text-align:center;color:rgba(14,26,43,.75);width:34px}
+  .cell{
+    width:100%;border:1px solid var(--line);background:transparent;border-radius:2px;
+    font-family:var(--mono);font-size:14px;font-weight:500;color:var(--ink);
+    padding:11px 0;cursor:pointer;transition:background .12s,color .12s,transform .12s;
+    font-variant-numeric:tabular-nums;
+  }
+  .cell:hover{background:rgba(14,26,43,.07)}
+  .cell:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+  .cell[aria-pressed="true"]{color:var(--bone);border-color:transparent;transform:translateY(-1px)}
+  .cell.c-spades[aria-pressed="true"],.cell.c-clubs[aria-pressed="true"]{background:var(--black)}
+  .cell.c-diamonds[aria-pressed="true"],.cell.c-hearts[aria-pressed="true"]{background:var(--red)}
+  .cell.c-notrump[aria-pressed="true"]{background:var(--gold);color:var(--ink)}
+
+  .specials{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+  .cell.c-misere[aria-pressed="true"]{background:var(--plum)}
+  .cell.spec{padding:13px 0;font-family:var(--ui);font-weight:600;font-size:12px;letter-spacing:.04em}
+  .cell.spec b{font-family:var(--mono);font-weight:500;opacity:.6;margin-left:6px}
+
+  /* ---------- record hand ---------- */
+  .panel{background:var(--ink-2);border:1px solid var(--line-lt);border-radius:3px;padding:14px}
+  .panel.idle{opacity:.5}
+  .contract-line{font-family:var(--disp);font-size:24px;margin:0 0 14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .contract-line .val{font-family:var(--mono);font-size:13px;color:var(--gold);letter-spacing:.06em}
+  .field{margin-bottom:14px}
+  .label{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(239,233,220,.5);display:block;margin-bottom:7px;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    background:transparent;color:var(--bone);border:1px solid var(--line-lt);
+    border-radius:2px;padding:11px 14px;font-size:13px;font-weight:500;
+    cursor:pointer;transition:background .12s,color .12s;
+  }
+  .chip:hover{background:rgba(239,233,220,.08)}
+  .chip:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+  .chip[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone);font-weight:600}
+  .chip.num{font-family:var(--mono);min-width:42px;padding:11px 0;text-align:center;flex:1}
+  .tally{font-family:var(--mono);font-size:11px;color:rgba(239,233,220,.45);margin-top:8px}
+  .tally.bad{color:var(--gold)}
+  .submit{
+    width:100%;padding:16px;border:0;border-radius:2px;background:var(--gold);color:var(--ink);
+    font-weight:700;font-size:14px;letter-spacing:.04em;cursor:pointer;
+  }
+  .submit:disabled{background:rgba(239,233,220,.14);color:rgba(239,233,220,.35);cursor:not-allowed}
+  .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+  .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(239,233,220,.6)}
+
+  /* ---------- log ---------- */
+  .log{background:var(--bone);color:var(--ink);border-radius:3px;overflow:hidden}
+  .log-row{
+    display:grid;grid-template-columns:26px 1fr auto auto;gap:10px;align-items:center;
+    padding:11px 13px;border-bottom:1px solid var(--line);
+  }
+  .log-row:last-child{border-bottom:0}
+  .log-row .n{font-family:var(--mono);font-size:11px;color:rgba(14,26,43,.4)}
+  .log-row .what{font-size:13px;line-height:1.35}
+  .log-row .what b{font-weight:600}
+  .log-row .what span{color:rgba(14,26,43,.55);display:block;font-size:11px;font-family:var(--mono)}
+  .log-row .delta{font-family:var(--mono);font-size:12px;text-align:right;white-space:nowrap}
+  .log-row .delta i{font-style:normal;display:block}
+  .log-row .delta .up{color:#1E6B4F}
+  .log-row .delta .dn{color:var(--red)}
+  .undo{
+    background:transparent;border:1px solid var(--line);border-radius:2px;color:rgba(14,26,43,.6);
+    font-size:11px;padding:7px 10px;cursor:pointer;
+  }
+  .undo:hover{background:rgba(14,26,43,.07)}
+  .empty{padding:22px 14px;font-size:13px;color:rgba(14,26,43,.55);line-height:1.5}
+  .empty b{color:var(--ink)}
+
+  /* ---------- rules ---------- */
+  details.rules{border-top:1px solid var(--line-lt);margin-top:30px;padding-top:14px}
+  details.rules summary{
+    cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:rgba(239,233,220,.5);list-style:none;padding:4px 0;
+  }
+  details.rules summary::-webkit-details-marker{display:none}
+  details.rules summary::before{content:"+ "}
+  details.rules[open] summary::before{content:"\2013 "}
+  .rule-item{display:flex;gap:11px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line-lt)}
+  .rule-item:last-of-type{border-bottom:0}
+  .rule-item input{margin-top:3px;accent-color:var(--gold);width:19px;height:19px;flex:none}
+  .rule-item div{font-size:13px;line-height:1.4}
+  .rule-item small{display:block;color:rgba(239,233,220,.45);font-size:11px;margin-top:3px}
+  .danger{
+    background:transparent;border:1px solid var(--red);color:var(--red);border-radius:2px;
+    padding:11px 15px;font-size:12px;font-weight:600;cursor:pointer;margin-top:14px;
+  }
+  .danger:hover{background:var(--red);color:var(--bone)}
+  .seat-toggle{display:flex;gap:6px;margin-top:10px}
+  .colophon{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:rgba(239,233,220,.28);margin-top:26px;text-align:center}
+
+  @media (max-width:420px){
+    .logo{font-size:36px}
+    .cell{font-size:12.5px;padding:10px 0}
+    td.lvl{font-size:16px;width:26px}
+    .side-total{font-size:30px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="mast-row">
+      <div class="logo">5<em>00</em></div>
+      <div class="kicker">Bid table &amp; score sheet</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="board" id="board"></section>
+  <div id="banner"></div>
+
+  <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note">Avondale</div></div>
+  <section class="sheet">
+    <table class="bids" id="bidTable"></table>
+    <div class="specials" id="specials"></div>
+  </section>
+
+  <div class="head"><h2>Record a hand</h2><div class="rule"></div></div>
+  <section class="panel" id="record"></section>
+
+  <div class="head"><h2>Hands played</h2><div class="rule"></div><div class="note" id="handCount"></div></div>
+  <section class="log" id="log"></section>
+
+  <details class="rules">
+    <summary>House rules &amp; setup</summary>
+    <div id="rules"></div>
+  </details>
+
+  <p class="colophon">SCORES ARE SAVED ON THIS DEVICE</p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = "fivehundred:game:v1";
+
+  var SUITS = [
+    {key:"spades",   glyph:"\u2660", name:"Spades"},
+    {key:"clubs",    glyph:"\u2663", name:"Clubs"},
+    {key:"diamonds", glyph:"\u2666", name:"Diamonds"},
+    {key:"hearts",   glyph:"\u2665", name:"Hearts"},
+    {key:"notrump",  glyph:"NT",     name:"No trumps"}
+  ];
+  var LEVELS = [6,7,8,9,10];
+  var BASE = {6:40,7:140,8:240,9:340,10:440};
+  function bidValue(level, suitIdx){ return BASE[level] + suitIdx*20; }
+
+  var DEFAULT = {
+    sides: [{name:"Us"},{name:"Them"}],
+    hands: [],
+    rules: {defTricks:true, slam:true, misereDef:false, winOnBid:true, backDoor:true}
+  };
+
+  var S = clone(DEFAULT);
+  var draft = {contract:null, bidder:null, tricks:null, defSplit:null};
+
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s).replace(/[&<>"]/g,function(m){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];
+    });
+  }
+
+  /* ---------- persistence ---------- */
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return;
+      var v = JSON.parse(raw);
+      if(v && Array.isArray(v.sides) && Array.isArray(v.hands)){
+        S = v;
+        S.rules = Object.assign(clone(DEFAULT.rules), v.rules || {});
+      }
+    }catch(e){}
+  }
+
+  /* ---------- scoring ---------- */
+  function scoreHand(h){
+    var n = S.sides.length;
+    var d = new Array(n).fill(0);
+    var c = h.contract;
+
+    if(c.type === "misere"){
+      d[h.bidder] = (h.tricks === 0) ? c.value : -c.value;
+      if(S.rules.misereDef){
+        for(var i=0;i<n;i++){ if(i!==h.bidder) d[i] += (h.defSplit[i]||0)*10; }
+      }
+      return d;
+    }
+
+    if(h.tricks >= c.level){
+      var pts = c.value;
+      if(S.rules.slam && h.tricks === 10 && c.value < 250) pts = 250;
+      d[h.bidder] = pts;
+    } else {
+      d[h.bidder] = -c.value;
+    }
+    if(S.rules.defTricks){
+      for(var j=0;j<n;j++){ if(j!==h.bidder) d[j] += (h.defSplit[j]||0)*10; }
+    }
+    return d;
+  }
+
+  function totals(){
+    var t = S.sides.map(function(){ return 0; });
+    S.hands.forEach(function(h){
+      h.delta.forEach(function(v,i){ if(i<t.length) t[i]+=v; });
+    });
+    return t;
+  }
+
+  function outcome(){
+    var run = S.sides.map(function(){ return 0; });
+    for(var i=0;i<S.hands.length;i++){
+      S.hands[i].delta.forEach(function(v,j){ run[j]+=v; });
+      for(var s=0;s<run.length;s++){
+        if(S.rules.backDoor && run[s] <= -500) return {type:"out", side:s, hand:i+1};
+        if(run[s] >= 500 && (!S.rules.winOnBid || S.hands[i].bidder === s)){
+          return {type:"win", side:s, hand:i+1};
+        }
+      }
+    }
+    return null;
+  }
+
+  /* ---------- rendering ---------- */
+  function renderBoard(){
+    var t = totals();
+    var max = Math.max.apply(null, t.concat([0]));
+    $("board").innerHTML = S.sides.map(function(sd,i){
+      var v = t[i];
+      var pct = Math.min(100, Math.abs(v)/500*100);
+      var neg = v < 0;
+      return '<div class="side'+(v===max && v>0 ? ' lead':'')+'">'+
+        '<input class="side-name" value="'+esc(sd.name)+'" data-side="'+i+'" aria-label="Side name" maxlength="18">'+
+        '<div class="side-total'+(neg?' neg':'')+'">'+v+'</div>'+
+        '<div class="track"><span class="'+(neg?'neg':'')+'" style="width:'+pct+'%"></span></div>'+
+        '<div class="meta"><span>'+(neg?'TO \u2212500':'TO 500')+'</span><span>'+(neg?(500+v)+' LEFT':(500-v)+' TO GO')+'</span></div>'+
+      '</div>';
+    }).join("");
+
+    var o = outcome();
+    $("banner").innerHTML = !o ? "" :
+      o.type === "win"
+        ? '<div class="banner"><span>'+esc(S.sides[o.side].name)+' wins on hand '+o.hand+'</span><span>500</span></div>'
+        : '<div class="banner out"><span>'+esc(S.sides[o.side].name)+' is out the back door</span><span>\u2212500</span></div>';
+  }
+
+  function renderBidTable(){
+    var head = '<tr><th></th>' + SUITS.map(function(s){
+      return '<th class="suit s-'+s.key+'">'+s.glyph+'</th>';
+    }).join("") + '</tr>';
+
+    var rows = LEVELS.map(function(lv){
+      return '<tr><td class="lvl">'+lv+'</td>' + SUITS.map(function(s,si){
+        var v = bidValue(lv,si);
+        var sel = draft.contract && draft.contract.type==="suit" && draft.contract.level===lv && draft.contract.suit===s.key;
+        return '<td><button class="cell c-'+s.key+'" aria-pressed="'+(!!sel)+'" '+
+          'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
+          'aria-label="'+lv+' '+s.name+', '+v+' points">'+v+'</button></td>';
+      }).join("") + '</tr>';
+    }).join("");
+
+    $("bidTable").innerHTML = head + rows;
+
+    var specs = [{id:"misere",label:"Mis\u00e8re",value:250},{id:"open",label:"Open mis\u00e8re",value:500}];
+    $("specials").innerHTML = specs.map(function(sp){
+      var sel = draft.contract && draft.contract.type==="misere" && draft.contract.id===sp.id;
+      return '<button class="cell spec c-misere" aria-pressed="'+(!!sel)+'" data-kind="misere" data-id="'+sp.id+'">'+
+        sp.label+'<b>'+sp.value+'</b></button>';
+    }).join("");
+  }
+
+  function renderRecord(){
+    var el = $("record");
+    var c = draft.contract;
+
+    if(!c){
+      el.className = "panel idle";
+      el.innerHTML = '<p class="contract-line" style="margin:0">Pick a contract above.</p>'+
+        '<div class="tally">Tap a cell in the bid table, or a mis\u00e8re, to start the hand.</div>';
+      return;
+    }
+    el.className = "panel";
+
+    var isMis = c.type === "misere";
+    var n = S.sides.length;
+
+    var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
+
+    html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
+      S.sides.map(function(sd,i){
+        return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
+      }).join("")+'</div></div>';
+
+    var who = draft.bidder!=null ? S.sides[draft.bidder].name : "the bidder";
+    html += '<div class="field"><span class="label">Tricks won by '+esc(who)+'</span><div class="chips">'+
+      Array.from({length:11},function(_,k){
+        return '<button class="chip num" data-role="tricks" data-i="'+k+'" aria-pressed="'+(draft.tricks===k)+'">'+k+'</button>';
+      }).join("")+'</div>';
+    if(isMis) html += '<div class="tally">Mis\u00e8re is made only on zero tricks.</div>';
+    html += '</div>';
+
+    var scoringDef = isMis ? S.rules.misereDef : S.rules.defTricks;
+    if(n > 2 && draft.tricks!=null && scoringDef){
+      var rem = 10 - draft.tricks, used = 0;
+      S.sides.forEach(function(_,i){ if(i!==draft.bidder) used += (draft.defSplit && draft.defSplit[i])||0; });
+      html += '<div class="field"><span class="label">Tricks won by each defender</span>';
+      S.sides.forEach(function(sd,i){
+        if(i===draft.bidder) return;
+        html += '<div style="margin-bottom:8px"><span class="label" style="letter-spacing:.06em;text-transform:none;font-family:var(--ui);font-size:12px">'+esc(sd.name)+'</span><div class="chips">'+
+          Array.from({length:rem+1},function(_,k){
+            var on = draft.defSplit && draft.defSplit[i]===k;
+            return '<button class="chip num" data-role="split" data-side="'+i+'" data-i="'+k+'" aria-pressed="'+(!!on)+'">'+k+'</button>';
+          }).join("")+'</div></div>';
+      });
+      html += '<div class="tally'+(used!==rem?' bad':'')+'">'+used+' of '+rem+' defending tricks assigned</div></div>';
+    }
+
+    var ready = readyToScore();
+    html += '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
+    if(ready){
+      var d = scoreHand(buildHand());
+      html += '<div class="preview">'+S.sides.map(function(sd,i){
+        return esc(sd.name)+' '+(d[i]>=0?'+':'')+d[i];
+      }).join('&nbsp;&nbsp;\u00b7&nbsp;&nbsp;')+'</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function buildHand(){
+    var n = S.sides.length;
+    var split = new Array(n).fill(0);
+    if(n === 2){
+      split[draft.bidder === 0 ? 1 : 0] = 10 - draft.tricks;
+    } else if(draft.defSplit){
+      S.sides.forEach(function(_,i){ if(i!==draft.bidder) split[i] = draft.defSplit[i]||0; });
+    }
+    var h = {contract:draft.contract, bidder:draft.bidder, tricks:draft.tricks, defSplit:split};
+    h.delta = scoreHand(h);
+    return h;
+  }
+
+  function readyToScore(){
+    if(!draft.contract || draft.bidder==null || draft.tricks==null) return false;
+    if(S.sides.length === 2) return true;
+    var scoring = draft.contract.type === "misere" ? S.rules.misereDef : S.rules.defTricks;
+    if(!scoring) return true;
+    var rem = 10 - draft.tricks, used = 0;
+    S.sides.forEach(function(_,i){ if(i!==draft.bidder) used += (draft.defSplit && draft.defSplit[i])||0; });
+    return used === rem;
+  }
+
+  function renderLog(){
+    $("handCount").textContent = S.hands.length ? S.hands.length + (S.hands.length===1?" hand":" hands") : "";
+    if(!S.hands.length){
+      $("log").innerHTML = '<div class="empty">No hands yet. Scoring runs <b>bid value if the contract is made, minus the bid value if it goes down</b>, and defenders pick up 10 a trick.</div>';
+      return;
+    }
+    $("log").innerHTML = S.hands.map(function(h,i){
+      var made = h.contract.type==="misere" ? h.tricks===0 : h.tricks >= h.contract.level;
+      var last = i === S.hands.length-1;
+      return '<div class="log-row">'+
+        '<div class="n">'+(i+1)+'</div>'+
+        '<div class="what"><b>'+esc(S.sides[h.bidder] ? S.sides[h.bidder].name : "?")+'</b> \u2014 '+h.contract.label+
+          '<span>'+(made?"MADE":"WENT DOWN")+' \u00b7 '+h.tricks+' trick'+(h.tricks===1?'':'s')+'</span></div>'+
+        '<div class="delta">'+h.delta.map(function(v){
+          return '<i class="'+(v>0?'up':(v<0?'dn':''))+'">'+(v>0?'+':'')+v+'</i>';
+        }).join("")+'</div>'+
+        (last ? '<button class="undo" data-role="undo">Undo</button>' : '<div></div>')+
+      '</div>';
+    }).join("");
+  }
+
+  function renderRules(){
+    var R = [
+      ["defTricks","Defenders score 10 a trick","Off means only the bidding side ever scores."],
+      ["slam","All ten tricks pays 250 minimum","The standard slam bonus on a bid worth less than 250."],
+      ["misereDef","Defenders score during a mis\u00e8re","Most tables play that they don't."],
+      ["winOnBid","You must be the bidder to win","Crossing 500 on defensive tricks doesn't end the game."],
+      ["backDoor","\u2212500 loses outright","Out the back door."]
+    ];
+    $("rules").innerHTML =
+      R.map(function(r){
+        return '<label class="rule-item"><input type="checkbox" data-rule="'+r[0]+'"'+(S.rules[r[0]]?' checked':'')+'>'+
+          '<div>'+r[1]+'<small>'+r[2]+'</small></div></label>';
+      }).join("") +
+      '<div class="rule-item"><div style="flex:1">Sides in play<small>Two for partnership play, three for cutthroat.</small>'+
+        '<div class="seat-toggle">'+
+          '<button class="chip" data-role="seats" data-i="2" aria-pressed="'+(S.sides.length===2)+'">2 sides</button>'+
+          '<button class="chip" data-role="seats" data-i="3" aria-pressed="'+(S.sides.length===3)+'">3 sides</button>'+
+        '</div></div></div>'+
+      '<button class="danger" data-role="reset">Clear the score sheet</button>';
+  }
+
+  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderLog(); renderRules(); }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("button");
+    if(!b) return;
+
+    if(b.dataset.kind === "suit"){
+      var lv = +b.dataset.level, si = +b.dataset.suit, s = SUITS[si];
+      draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:bidValue(lv,si)};
+      draft.tricks = null; draft.defSplit = null;
+      renderBidTable(); renderRecord(); return;
+    }
+    if(b.dataset.kind === "misere"){
+      var id = b.dataset.id;
+      draft.contract = {type:"misere", id:id,
+        label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
+        value: id==="open" ? 500 : 250};
+      draft.tricks = null; draft.defSplit = null;
+      renderBidTable(); renderRecord(); return;
+    }
+
+    var role = b.dataset.role;
+    if(role === "bidder"){ draft.bidder = +b.dataset.i; draft.defSplit = null; renderRecord(); return; }
+    if(role === "tricks"){ draft.tricks = +b.dataset.i; draft.defSplit = null; renderRecord(); return; }
+    if(role === "split"){
+      draft.defSplit = draft.defSplit || {};
+      draft.defSplit[+b.dataset.side] = +b.dataset.i;
+      renderRecord(); return;
+    }
+    if(b.id === "scoreBtn"){
+      if(!readyToScore()) return;
+      S.hands.push(buildHand());
+      draft = {contract:null, bidder:null, tricks:null, defSplit:null};
+      save(); renderAll(); return;
+    }
+    if(role === "undo"){ S.hands.pop(); save(); renderAll(); return; }
+    if(role === "seats"){
+      var want = +b.dataset.i;
+      if(want === S.sides.length) return;
+      if(S.hands.length && !confirm("Changing sides clears the hands played. Continue?")) return;
+      var names = want===2 ? ["Us","Them"] : ["Player 1","Player 2","Player 3"];
+      S.sides = names.map(function(nm){ return {name:nm}; });
+      S.hands = [];
+      draft = {contract:null, bidder:null, tricks:null, defSplit:null};
+      save(); renderAll(); return;
+    }
+    if(role === "reset"){
+      if(!confirm("Clear every hand and start a new game?")) return;
+      S.hands = [];
+      draft = {contract:null, bidder:null, tricks:null, defSplit:null};
+      save(); renderAll(); return;
+    }
+  });
+
+  document.addEventListener("change", function(e){
+    var r = e.target.dataset && e.target.dataset.rule;
+    if(r){
+      S.rules[r] = e.target.checked;
+      S.hands.forEach(function(h){ h.delta = scoreHand(h); });
+      save(); renderAll();
+    }
+  });
+
+  document.addEventListener("input", function(e){
+    if(e.target.classList && e.target.classList.contains("side-name")){
+      S.sides[+e.target.dataset.side].name = e.target.value;
+      save(); renderRecord(); renderLog();
+    }
+  });
+
+  load();
+  renderAll();
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./sw.js", {scope:"./"}).catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
