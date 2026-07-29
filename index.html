@@ -227,6 +227,71 @@
   @media (prefers-reduced-motion:reduce){
     *{transition:none!important;animation:none!important}
   }
+
+  /* ---------- compact boards for 3 and 5 seats ---------- */
+  .board.seats-3 .side,.board.seats-5 .side{padding:9px 12px;gap:7px}
+  .board.seats-3 .side-total,.board.seats-5 .side-total{font-size:26px}
+  .board.seats-5 .meta{display:none}
+  .board.seats-5 .side-name{font-size:14px}
+
+  /* ---------- partner + split ---------- */
+  .chip.alone{border-style:dashed;font-style:italic}
+  .chip[disabled]{opacity:.35;cursor:not-allowed}
+  .chip[disabled]:hover{background:transparent}
+  .split-row{margin-bottom:9px}
+  .split-name{
+    display:block;font-size:12px;color:rgba(239,233,220,.72);
+    margin-bottom:6px;font-weight:500;
+  }
+
+  /* ---------- log: mixed-rule marker ---------- */
+  .log-row.stale{background:rgba(184,145,47,.09)}
+  .log-row.stale .n{color:var(--gold)}
+  .log-row .what .amp{color:rgba(14,26,43,.45);font-weight:400}
+  .log-row .what span em{font-style:normal;color:var(--gold)}
+
+  /* ---------- dialog ---------- */
+  .dlg-backdrop{
+    position:fixed;inset:0;z-index:50;
+    background:rgba(6,12,20,.72);
+    display:flex;align-items:center;justify-content:center;
+    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+  }
+  .dlg-backdrop[hidden]{display:none}
+  .dlg{
+    background:var(--ink-2);border:1px solid var(--line-lt);border-radius:4px;
+    max-width:400px;width:100%;padding:20px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5);
+  }
+  .dlg h3{
+    font-family:var(--disp);font-weight:400;font-size:21px;margin:0 0 12px;
+  }
+  .dlg p{font-size:13.5px;line-height:1.5;margin:0 0 12px;color:rgba(239,233,220,.85)}
+  .dlg p.dim{color:rgba(239,233,220,.45);font-size:12px;margin-bottom:0}
+  .dlg b{font-weight:700}
+  .rescore-table{
+    background:rgba(14,26,43,.5);border-radius:3px;
+    padding:4px 12px;margin:0 0 14px;
+  }
+  .rescore-line{
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding:8px 0;border-bottom:1px solid var(--line-lt);
+    font-size:13px;
+  }
+  .rescore-line:last-child{border-bottom:0}
+  .rescore-line span:last-child{font-family:var(--mono);font-size:12px;white-space:nowrap}
+  .rescore-line i{font-style:normal;color:rgba(239,233,220,.45)}
+  .rescore-line b{color:var(--gold);font-weight:600}
+  .dlg-actions{display:flex;gap:8px;margin-top:18px}
+  .dlg-actions button{
+    flex:1;padding:14px 10px;border-radius:2px;font-size:13px;font-weight:600;
+    cursor:pointer;border:1px solid var(--line-lt);
+  }
+  .dlg-ok{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+  .dlg-ok.danger-solid{background:var(--red);color:var(--bone);border-color:var(--red)}
+  .dlg-cancel{background:transparent;color:var(--bone)}
+  .dlg-cancel:hover{background:rgba(239,233,220,.08)}
+  .dlg-actions button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -264,355 +329,17 @@
   <p class="colophon">SCORES ARE SAVED ON THIS DEVICE</p>
 </main>
 
-<script>
-(function(){
-  "use strict";
+<div class="dlg-backdrop" id="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg">
+    <h3 id="dlgTitle"></h3>
+    <div id="dlgBody"></div>
+    <div class="dlg-actions">
+      <button class="dlg-cancel" id="dlgCancel">Cancel</button>
+      <button class="dlg-ok" id="dlgOk">OK</button>
+    </div>
+  </div>
+</div>
 
-  var KEY = "fivehundred:game:v1";
-
-  var SUITS = [
-    {key:"spades",   glyph:"\u2660", name:"Spades"},
-    {key:"clubs",    glyph:"\u2663", name:"Clubs"},
-    {key:"diamonds", glyph:"\u2666", name:"Diamonds"},
-    {key:"hearts",   glyph:"\u2665", name:"Hearts"},
-    {key:"notrump",  glyph:"NT",     name:"No trumps"}
-  ];
-  var LEVELS = [6,7,8,9,10];
-  var BASE = {6:40,7:140,8:240,9:340,10:440};
-  function bidValue(level, suitIdx){ return BASE[level] + suitIdx*20; }
-
-  var DEFAULT = {
-    sides: [{name:"Us"},{name:"Them"}],
-    hands: [],
-    rules: {defTricks:true, slam:true, misereDef:false, winOnBid:true, backDoor:true}
-  };
-
-  var S = clone(DEFAULT);
-  var draft = {contract:null, bidder:null, tricks:null, defSplit:null};
-
-  function clone(o){ return JSON.parse(JSON.stringify(o)); }
-  function $(id){ return document.getElementById(id); }
-  function esc(s){
-    return String(s).replace(/[&<>"]/g,function(m){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];
-    });
-  }
-
-  /* ---------- persistence ---------- */
-  function save(){
-    try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
-  }
-  function load(){
-    try{
-      var raw = localStorage.getItem(KEY);
-      if(!raw) return;
-      var v = JSON.parse(raw);
-      if(v && Array.isArray(v.sides) && Array.isArray(v.hands)){
-        S = v;
-        S.rules = Object.assign(clone(DEFAULT.rules), v.rules || {});
-      }
-    }catch(e){}
-  }
-
-  /* ---------- scoring ---------- */
-  function scoreHand(h){
-    var n = S.sides.length;
-    var d = new Array(n).fill(0);
-    var c = h.contract;
-
-    if(c.type === "misere"){
-      d[h.bidder] = (h.tricks === 0) ? c.value : -c.value;
-      if(S.rules.misereDef){
-        for(var i=0;i<n;i++){ if(i!==h.bidder) d[i] += (h.defSplit[i]||0)*10; }
-      }
-      return d;
-    }
-
-    if(h.tricks >= c.level){
-      var pts = c.value;
-      if(S.rules.slam && h.tricks === 10 && c.value < 250) pts = 250;
-      d[h.bidder] = pts;
-    } else {
-      d[h.bidder] = -c.value;
-    }
-    if(S.rules.defTricks){
-      for(var j=0;j<n;j++){ if(j!==h.bidder) d[j] += (h.defSplit[j]||0)*10; }
-    }
-    return d;
-  }
-
-  function totals(){
-    var t = S.sides.map(function(){ return 0; });
-    S.hands.forEach(function(h){
-      h.delta.forEach(function(v,i){ if(i<t.length) t[i]+=v; });
-    });
-    return t;
-  }
-
-  function outcome(){
-    var run = S.sides.map(function(){ return 0; });
-    for(var i=0;i<S.hands.length;i++){
-      S.hands[i].delta.forEach(function(v,j){ run[j]+=v; });
-      for(var s=0;s<run.length;s++){
-        if(S.rules.backDoor && run[s] <= -500) return {type:"out", side:s, hand:i+1};
-        if(run[s] >= 500 && (!S.rules.winOnBid || S.hands[i].bidder === s)){
-          return {type:"win", side:s, hand:i+1};
-        }
-      }
-    }
-    return null;
-  }
-
-  /* ---------- rendering ---------- */
-  function renderBoard(){
-    var t = totals();
-    var max = Math.max.apply(null, t.concat([0]));
-    $("board").innerHTML = S.sides.map(function(sd,i){
-      var v = t[i];
-      var pct = Math.min(100, Math.abs(v)/500*100);
-      var neg = v < 0;
-      return '<div class="side'+(v===max && v>0 ? ' lead':'')+'">'+
-        '<input class="side-name" value="'+esc(sd.name)+'" data-side="'+i+'" aria-label="Side name" maxlength="18">'+
-        '<div class="side-total'+(neg?' neg':'')+'">'+v+'</div>'+
-        '<div class="track"><span class="'+(neg?'neg':'')+'" style="width:'+pct+'%"></span></div>'+
-        '<div class="meta"><span>'+(neg?'TO \u2212500':'TO 500')+'</span><span>'+(neg?(500+v)+' LEFT':(500-v)+' TO GO')+'</span></div>'+
-      '</div>';
-    }).join("");
-
-    var o = outcome();
-    $("banner").innerHTML = !o ? "" :
-      o.type === "win"
-        ? '<div class="banner"><span>'+esc(S.sides[o.side].name)+' wins on hand '+o.hand+'</span><span>500</span></div>'
-        : '<div class="banner out"><span>'+esc(S.sides[o.side].name)+' is out the back door</span><span>\u2212500</span></div>';
-  }
-
-  function renderBidTable(){
-    var head = '<tr><th></th>' + SUITS.map(function(s){
-      return '<th class="suit s-'+s.key+'">'+s.glyph+'</th>';
-    }).join("") + '</tr>';
-
-    var rows = LEVELS.map(function(lv){
-      return '<tr><td class="lvl">'+lv+'</td>' + SUITS.map(function(s,si){
-        var v = bidValue(lv,si);
-        var sel = draft.contract && draft.contract.type==="suit" && draft.contract.level===lv && draft.contract.suit===s.key;
-        return '<td><button class="cell c-'+s.key+'" aria-pressed="'+(!!sel)+'" '+
-          'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
-          'aria-label="'+lv+' '+s.name+', '+v+' points">'+v+'</button></td>';
-      }).join("") + '</tr>';
-    }).join("");
-
-    $("bidTable").innerHTML = head + rows;
-
-    var specs = [{id:"misere",label:"Mis\u00e8re",value:250},{id:"open",label:"Open mis\u00e8re",value:500}];
-    $("specials").innerHTML = specs.map(function(sp){
-      var sel = draft.contract && draft.contract.type==="misere" && draft.contract.id===sp.id;
-      return '<button class="cell spec c-misere" aria-pressed="'+(!!sel)+'" data-kind="misere" data-id="'+sp.id+'">'+
-        sp.label+'<b>'+sp.value+'</b></button>';
-    }).join("");
-  }
-
-  function renderRecord(){
-    var el = $("record");
-    var c = draft.contract;
-
-    if(!c){
-      el.className = "panel idle";
-      el.innerHTML = '<p class="contract-line" style="margin:0">Pick a contract above.</p>'+
-        '<div class="tally">Tap a cell in the bid table, or a mis\u00e8re, to start the hand.</div>';
-      return;
-    }
-    el.className = "panel";
-
-    var isMis = c.type === "misere";
-    var n = S.sides.length;
-
-    var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
-
-    html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
-      S.sides.map(function(sd,i){
-        return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
-      }).join("")+'</div></div>';
-
-    var who = draft.bidder!=null ? S.sides[draft.bidder].name : "the bidder";
-    html += '<div class="field"><span class="label">Tricks won by '+esc(who)+'</span><div class="chips">'+
-      Array.from({length:11},function(_,k){
-        return '<button class="chip num" data-role="tricks" data-i="'+k+'" aria-pressed="'+(draft.tricks===k)+'">'+k+'</button>';
-      }).join("")+'</div>';
-    if(isMis) html += '<div class="tally">Mis\u00e8re is made only on zero tricks.</div>';
-    html += '</div>';
-
-    var scoringDef = isMis ? S.rules.misereDef : S.rules.defTricks;
-    if(n > 2 && draft.tricks!=null && scoringDef){
-      var rem = 10 - draft.tricks, used = 0;
-      S.sides.forEach(function(_,i){ if(i!==draft.bidder) used += (draft.defSplit && draft.defSplit[i])||0; });
-      html += '<div class="field"><span class="label">Tricks won by each defender</span>';
-      S.sides.forEach(function(sd,i){
-        if(i===draft.bidder) return;
-        html += '<div style="margin-bottom:8px"><span class="label" style="letter-spacing:.06em;text-transform:none;font-family:var(--ui);font-size:12px">'+esc(sd.name)+'</span><div class="chips">'+
-          Array.from({length:rem+1},function(_,k){
-            var on = draft.defSplit && draft.defSplit[i]===k;
-            return '<button class="chip num" data-role="split" data-side="'+i+'" data-i="'+k+'" aria-pressed="'+(!!on)+'">'+k+'</button>';
-          }).join("")+'</div></div>';
-      });
-      html += '<div class="tally'+(used!==rem?' bad':'')+'">'+used+' of '+rem+' defending tricks assigned</div></div>';
-    }
-
-    var ready = readyToScore();
-    html += '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
-    if(ready){
-      var d = scoreHand(buildHand());
-      html += '<div class="preview">'+S.sides.map(function(sd,i){
-        return esc(sd.name)+' '+(d[i]>=0?'+':'')+d[i];
-      }).join('&nbsp;&nbsp;\u00b7&nbsp;&nbsp;')+'</div>';
-    }
-    el.innerHTML = html;
-  }
-
-  function buildHand(){
-    var n = S.sides.length;
-    var split = new Array(n).fill(0);
-    if(n === 2){
-      split[draft.bidder === 0 ? 1 : 0] = 10 - draft.tricks;
-    } else if(draft.defSplit){
-      S.sides.forEach(function(_,i){ if(i!==draft.bidder) split[i] = draft.defSplit[i]||0; });
-    }
-    var h = {contract:draft.contract, bidder:draft.bidder, tricks:draft.tricks, defSplit:split};
-    h.delta = scoreHand(h);
-    return h;
-  }
-
-  function readyToScore(){
-    if(!draft.contract || draft.bidder==null || draft.tricks==null) return false;
-    if(S.sides.length === 2) return true;
-    var scoring = draft.contract.type === "misere" ? S.rules.misereDef : S.rules.defTricks;
-    if(!scoring) return true;
-    var rem = 10 - draft.tricks, used = 0;
-    S.sides.forEach(function(_,i){ if(i!==draft.bidder) used += (draft.defSplit && draft.defSplit[i])||0; });
-    return used === rem;
-  }
-
-  function renderLog(){
-    $("handCount").textContent = S.hands.length ? S.hands.length + (S.hands.length===1?" hand":" hands") : "";
-    if(!S.hands.length){
-      $("log").innerHTML = '<div class="empty">No hands yet. Scoring runs <b>bid value if the contract is made, minus the bid value if it goes down</b>, and defenders pick up 10 a trick.</div>';
-      return;
-    }
-    $("log").innerHTML = S.hands.map(function(h,i){
-      var made = h.contract.type==="misere" ? h.tricks===0 : h.tricks >= h.contract.level;
-      var last = i === S.hands.length-1;
-      return '<div class="log-row">'+
-        '<div class="n">'+(i+1)+'</div>'+
-        '<div class="what"><b>'+esc(S.sides[h.bidder] ? S.sides[h.bidder].name : "?")+'</b> \u2014 '+h.contract.label+
-          '<span>'+(made?"MADE":"WENT DOWN")+' \u00b7 '+h.tricks+' trick'+(h.tricks===1?'':'s')+'</span></div>'+
-        '<div class="delta">'+h.delta.map(function(v){
-          return '<i class="'+(v>0?'up':(v<0?'dn':''))+'">'+(v>0?'+':'')+v+'</i>';
-        }).join("")+'</div>'+
-        (last ? '<button class="undo" data-role="undo">Undo</button>' : '<div></div>')+
-      '</div>';
-    }).join("");
-  }
-
-  function renderRules(){
-    var R = [
-      ["defTricks","Defenders score 10 a trick","Off means only the bidding side ever scores."],
-      ["slam","All ten tricks pays 250 minimum","The standard slam bonus on a bid worth less than 250."],
-      ["misereDef","Defenders score during a mis\u00e8re","Most tables play that they don't."],
-      ["winOnBid","You must be the bidder to win","Crossing 500 on defensive tricks doesn't end the game."],
-      ["backDoor","\u2212500 loses outright","Out the back door."]
-    ];
-    $("rules").innerHTML =
-      R.map(function(r){
-        return '<label class="rule-item"><input type="checkbox" data-rule="'+r[0]+'"'+(S.rules[r[0]]?' checked':'')+'>'+
-          '<div>'+r[1]+'<small>'+r[2]+'</small></div></label>';
-      }).join("") +
-      '<div class="rule-item"><div style="flex:1">Sides in play<small>Two for partnership play, three for cutthroat.</small>'+
-        '<div class="seat-toggle">'+
-          '<button class="chip" data-role="seats" data-i="2" aria-pressed="'+(S.sides.length===2)+'">2 sides</button>'+
-          '<button class="chip" data-role="seats" data-i="3" aria-pressed="'+(S.sides.length===3)+'">3 sides</button>'+
-        '</div></div></div>'+
-      '<button class="danger" data-role="reset">Clear the score sheet</button>';
-  }
-
-  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderLog(); renderRules(); }
-
-  /* ---------- events ---------- */
-  document.addEventListener("click", function(e){
-    var b = e.target.closest && e.target.closest("button");
-    if(!b) return;
-
-    if(b.dataset.kind === "suit"){
-      var lv = +b.dataset.level, si = +b.dataset.suit, s = SUITS[si];
-      draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:bidValue(lv,si)};
-      draft.tricks = null; draft.defSplit = null;
-      renderBidTable(); renderRecord(); return;
-    }
-    if(b.dataset.kind === "misere"){
-      var id = b.dataset.id;
-      draft.contract = {type:"misere", id:id,
-        label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
-        value: id==="open" ? 500 : 250};
-      draft.tricks = null; draft.defSplit = null;
-      renderBidTable(); renderRecord(); return;
-    }
-
-    var role = b.dataset.role;
-    if(role === "bidder"){ draft.bidder = +b.dataset.i; draft.defSplit = null; renderRecord(); return; }
-    if(role === "tricks"){ draft.tricks = +b.dataset.i; draft.defSplit = null; renderRecord(); return; }
-    if(role === "split"){
-      draft.defSplit = draft.defSplit || {};
-      draft.defSplit[+b.dataset.side] = +b.dataset.i;
-      renderRecord(); return;
-    }
-    if(b.id === "scoreBtn"){
-      if(!readyToScore()) return;
-      S.hands.push(buildHand());
-      draft = {contract:null, bidder:null, tricks:null, defSplit:null};
-      save(); renderAll(); return;
-    }
-    if(role === "undo"){ S.hands.pop(); save(); renderAll(); return; }
-    if(role === "seats"){
-      var want = +b.dataset.i;
-      if(want === S.sides.length) return;
-      if(S.hands.length && !confirm("Changing sides clears the hands played. Continue?")) return;
-      var names = want===2 ? ["Us","Them"] : ["Player 1","Player 2","Player 3"];
-      S.sides = names.map(function(nm){ return {name:nm}; });
-      S.hands = [];
-      draft = {contract:null, bidder:null, tricks:null, defSplit:null};
-      save(); renderAll(); return;
-    }
-    if(role === "reset"){
-      if(!confirm("Clear every hand and start a new game?")) return;
-      S.hands = [];
-      draft = {contract:null, bidder:null, tricks:null, defSplit:null};
-      save(); renderAll(); return;
-    }
-  });
-
-  document.addEventListener("change", function(e){
-    var r = e.target.dataset && e.target.dataset.rule;
-    if(r){
-      S.rules[r] = e.target.checked;
-      S.hands.forEach(function(h){ h.delta = scoreHand(h); });
-      save(); renderAll();
-    }
-  });
-
-  document.addEventListener("input", function(e){
-    if(e.target.classList && e.target.classList.contains("side-name")){
-      S.sides[+e.target.dataset.side].name = e.target.value;
-      save(); renderRecord(); renderLog();
-    }
-  });
-
-  load();
-  renderAll();
-
-  if("serviceWorker" in navigator){
-    window.addEventListener("load", function(){
-      navigator.serviceWorker.register("./sw.js", {scope:"./"}).catch(function(){});
-    });
-  }
-})();
-</script>
+<script src="./app.js"></script>
 </body>
 </html>

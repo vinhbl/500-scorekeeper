@@ -1,9 +1,10 @@
 /* Bump CACHE whenever you edit index.html, so phones pick up the change. */
-var CACHE = "five-hundred-v1";
+var CACHE = "five-hundred-v2";
 
 var SHELL = [
   "./",
   "./index.html",
+  "./app.js",
   "./manifest.webmanifest",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
