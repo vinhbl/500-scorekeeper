@@ -224,6 +224,36 @@
     td.lvl{font-size:16px;width:26px}
     .side-total{font-size:30px}
   }
+
+  /* ---------- landscape: full-screen bid table for the table ----------
+     Phone landscape only. Guarded by max-height + coarse pointer so desktop
+     and tablet portrait keep the normal column layout. The use case is a
+     shared reference: rotate, set the phone down, everyone reads the bids.
+     Tapping still selects a contract, which carries back to portrait. */
+  @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
+    body{padding:0;overflow:hidden}
+    .mast,#board,#banner,.head,#record,#log,details.rules,.colophon{display:none!important}
+    main.wrap{
+      max-width:none;margin:0;height:100vh;height:100dvh;
+      padding:calc(7px + var(--safe-t)) calc(7px + var(--safe-r)) calc(7px + var(--safe-b)) calc(7px + var(--safe-l));
+      display:flex;
+    }
+    .sheet{
+      flex:1;margin:0;border-radius:4px;padding:9px 11px;
+      display:flex;flex-direction:column;min-height:0;
+    }
+    table.bids{flex:1;height:100%}
+    table.bids th{padding:1px 0 6px}
+    table.bids th.suit{font-size:27px}
+    th.s-notrump{font-size:15px;letter-spacing:.04em}
+    td.lvl{font-size:25px;width:46px}
+    .cell{font-size:23px;padding:0;height:100%;border-radius:3px}
+    .cell[aria-pressed="true"]{transform:none}
+    .specials{flex:none;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
+    .cell.spec{padding:12px 0;font-size:14px}
+    .cell.spec b{font-size:13px;margin-left:8px}
+  }
+
   @media (prefers-reduced-motion:reduce){
     *{transition:none!important;animation:none!important}
   }
