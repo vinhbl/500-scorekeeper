@@ -1,0 +1,247 @@
+/* Drives the real index.html in jsdom: records hands, switches seat counts,
+   and exercises the rescore prompt.  Run: node test/ui.test.js
+   Requires jsdom (npm i jsdom).  */
+
+const fs = require("fs");
+const path = require("path");
+const { JSDOM } = require("jsdom");
+
+let pass = 0, fail = 0;
+function eq(actual, expected, name){
+  const a = JSON.stringify(actual), b = JSON.stringify(expected);
+  if(a === b){ pass++; console.log("  ok   " + name); }
+  else { fail++; console.log("  FAIL " + name + "\n         expected " + b + "\n         got      " + a); }
+}
+function ok(cond, name){ eq(!!cond, true, name); }
+function group(n){ console.log("\n" + n); }
+
+function boot(seedKey, seedValue){
+  const html = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  const dom = new JSDOM(html, { runScripts: "outside-only", url: "https://example.com/500/" });
+  const w = dom.window;
+  const store = {};
+  if(seedKey) store[seedKey] = seedValue;
+  Object.defineProperty(w, "localStorage", {
+    value: {
+      getItem: k => (k in store ? store[k] : null),
+      setItem: (k,v) => { store[k] = v; },
+      removeItem: k => { delete store[k]; }
+    },
+    configurable: true
+  });
+  const app = fs.readFileSync(path.join(__dirname, "..", "docs", "app.js"), "utf8");
+  w.eval(app);
+  return { w, d: w.document, store, API: w.__500 };
+}
+
+function click(d, sel){
+  const el = typeof sel === "string" ? d.querySelector(sel) : sel;
+  if(!el) throw new Error("no element for " + sel);
+  el.dispatchEvent(new (el.ownerDocument.defaultView.MouseEvent)("click", {bubbles:true}));
+  return el;
+}
+function chip(d, role, i){
+  return d.querySelector('[data-role="'+role+'"][data-i="'+i+'"]');
+}
+
+/* ================= boots clean ================= */
+group("cold start");
+{
+  const { d, API } = boot();
+  const S = API.state();
+  eq(S.version, 2, "starts at schema v2");
+  eq(S.game.seats, 2, "defaults to two sides");
+  ok(d.querySelectorAll(".side").length === 2, "renders two score cards");
+  ok(d.querySelector("#bidTable").innerHTML.includes("440"), "bid table renders");
+  ok(d.querySelector("#dialog").hidden, "dialog starts hidden");
+  ok(!d.querySelector('[data-rule="defShare"]'), "defShare hidden at two sides");
+  ok(d.querySelector('[data-rule="defTricks"]'), "defTricks visible at two sides");
+}
+
+/* ================= records a 2-side hand ================= */
+group("record a hand — 2 sides");
+{
+  const { d, API } = boot();
+  click(d, '[data-kind="suit"][data-level="7"][data-suit="3"]');   // 7 hearts = 200
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "tricks", 8));
+  ok(!d.querySelector("#scoreBtn").disabled, "score button enables");
+  click(d, "#scoreBtn");
+  const S = API.state();
+  eq(S.hands.length, 1, "hand recorded");
+  eq(S.hands[0].declaring, [0], "declaring is the bidder alone");
+  eq(S.hands[0].trickSplit, [0,2], "single defender auto-assigned the remaining tricks");
+  eq(S.hands[0].delta, [200,20], "scored correctly");
+  ok(!!S.hands[0].scoredUnder, "hand carries a rules snapshot");
+  ok(d.querySelector(".log-row"), "log renders the hand");
+}
+
+/* ================= seat lock ================= */
+group("seat lock");
+{
+  const { d, API } = boot();
+  ok(!chip(d, "seats", 5).disabled, "seat toggle live before any hand");
+  click(d, chip(d, "seats", 5));
+  eq(API.state().game.seats, 5, "switched to five players");
+  eq(d.querySelectorAll(".side").length, 5, "renders five score cards");
+
+  click(d, '[data-kind="suit"][data-level="6"][data-suit="0"]');
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "partner", 2));
+  click(d, chip(d, "tricks", 10));
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "five-player hand recorded");
+  ok(chip(d, "seats", 3).disabled, "seat toggle locks once a hand exists");
+  const before = API.state().game.seats;
+  click(d, chip(d, "seats", 3));
+  eq(API.state().game.seats, before, "clicking a locked seat toggle does nothing");
+}
+
+/* ================= 5-player partner + alone ================= */
+group("five players — partner and alone");
+{
+  const { d, API } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, '[data-kind="suit"][data-level="8"][data-suit="0"]');  // 8 spades = 240
+  click(d, chip(d, "bidder", 0));
+  ok(d.querySelector('[data-role="partner"][data-i="-1"]'), "Alone option offered");
+  ok(!d.querySelector('[data-role="partner"][data-i="0"]'), "bidder is not offered as their own partner");
+  click(d, chip(d, "partner", 2));
+  click(d, chip(d, "tricks", 8));
+  // three defenders: 1, 3, 4 must split 2 tricks
+  ok(d.querySelector('[data-role="split"][data-side="1"]'), "defender split shown for three defenders");
+  click(d, d.querySelector('[data-role="split"][data-side="1"][data-i="1"]'));
+  click(d, d.querySelector('[data-role="split"][data-side="3"][data-i="1"]'));
+  click(d, d.querySelector('[data-role="split"][data-side="4"][data-i="0"]'));
+  ok(!d.querySelector("#scoreBtn").disabled, "score enables once every trick is assigned");
+  click(d, "#scoreBtn");
+  const h = API.state().hands[0];
+  eq(h.declaring, [0,2], "declaring holds bidder and partner");
+  eq(h.delta, [240,20,240,20,20], "bidder and partner both score; defShare on by default");
+  ok(d.querySelector(".log-row .amp"), "log shows the partnership");
+}
+{
+  const { d, API } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, '[data-kind="suit"][data-level="9"][data-suit="4"]');
+  click(d, chip(d, "bidder", 3));
+  click(d, chip(d, "partner", -1));
+  click(d, chip(d, "tricks", 10));
+  click(d, "#scoreBtn");
+  const h = API.state().hands[0];
+  eq(h.declaring, [3], "alone records a single declaring seat");
+  ok(d.querySelector(".log-row").textContent.includes("alone"), "log marks a lone bidder");
+}
+
+/* ================= rescore prompt ================= */
+group("rescore prompt");
+{
+  const { d, API } = boot();
+  click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');  // 7 spades = 140
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "tricks", 7));
+  click(d, "#scoreBtn");
+  eq(API.state().hands[0].delta, [140,30], "baseline: defenders take 3");
+
+  // flipping defTricks changes points -> prompt
+  const box = d.querySelector('[data-rule="defTricks"]');
+  box.checked = false;
+  box.dispatchEvent(new d.defaultView.Event("change", {bubbles:true}));
+  ok(!d.querySelector("#dialog").hidden, "prompt opens when points would change");
+  ok(d.querySelector("#dlgBody").textContent.includes("1 hand"), "prompt names the affected hand count");
+  ok(d.querySelector(".rescore-line"), "prompt shows before/after totals");
+  eq(API.state().rules.defTricks, false, "rule applies immediately regardless");
+  eq(API.state().hands[0].delta, [140,30], "played hand untouched until confirmed");
+
+  click(d, "#dlgCancel");
+  ok(d.querySelector("#dialog").hidden, "dialog closes on keep-as-played");
+  eq(API.state().hands[0].delta, [140,30], "keep as played leaves the sheet alone");
+  ok(d.querySelector(".log-row.stale"), "log marks the hand as scored under earlier rules");
+}
+{
+  const { d, API } = boot();
+  click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "tricks", 7));
+  click(d, "#scoreBtn");
+  const box = d.querySelector('[data-rule="defTricks"]');
+  box.checked = false;
+  box.dispatchEvent(new d.defaultView.Event("change", {bubbles:true}));
+  click(d, "#dlgOk");
+  eq(API.state().hands[0].delta, [140,0], "rescore rewrites the played hand");
+  eq(API.state().hands[0].scoredUnder.defTricks, false, "snapshot updated on rescore");
+  ok(!d.querySelector(".log-row.stale"), "stale marker clears after rescoring");
+}
+
+/* ================= no prompt when nothing changes ================= */
+group("dry run suppresses pointless prompts");
+{
+  const { d, API } = boot();
+  click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "tricks", 7));
+  click(d, "#scoreBtn");
+
+  // no misère was bid, so flipping misereDef cannot change any delta
+  const box = d.querySelector('[data-rule="misereDef"]');
+  box.checked = true;
+  box.dispatchEvent(new d.defaultView.Event("change", {bubbles:true}));
+  ok(d.querySelector("#dialog").hidden, "no prompt for a rule with no effect on played hands");
+  eq(API.state().rules.misereDef, true, "rule still applies");
+
+  // win conditions never prompt
+  const wb = d.querySelector('[data-rule="winOnBid"]');
+  wb.checked = false;
+  wb.dispatchEvent(new d.defaultView.Event("change", {bubbles:true}));
+  ok(d.querySelector("#dialog").hidden, "no prompt for a non-rescorable rule");
+  eq(API.state().rules.winOnBid, false, "win condition still applies");
+}
+
+/* ================= migration from a real v1 payload ================= */
+group("migration on load");
+{
+  const v1 = JSON.stringify({
+    sides:[{name:"Ellis"},{name:"Ren"}],
+    rules:{defTricks:true, slam:true, misereDef:false, winOnBid:true, backDoor:true},
+    hands:[{contract:{type:"suit",level:7,suit:"hearts",label:"7 \u2665",value:200},
+            bidder:0, tricks:8, defSplit:[0,2], delta:[200,20]}]
+  });
+  const { d, API, store } = boot("fivehundred:game:v1", v1);
+  const S = API.state();
+  eq(S.version, 2, "v1 payload migrated on load");
+  eq(S.sides.map(s=>s.name), ["Ellis","Ren"], "names survive");
+  eq(S.hands[0].declaring, [0], "declaring backfilled");
+  eq(S.hands[0].delta, [200,20], "delta preserved exactly");
+  ok(store["fivehundred:game:v2"], "migrated state written under the v2 key");
+  ok(d.querySelector(".log-row"), "migrated hand renders");
+  ok(d.querySelector(".side-total").textContent === "200", "board totals from migrated data");
+}
+
+/* ================= corrupt payload ================= */
+group("corrupt storage");
+{
+  const { API } = boot("fivehundred:game:v2", "{not json");
+  eq(API.state().hands.length, 0, "garbage JSON falls back to a fresh game");
+  eq(API.state().version, 2, "fresh game is v2");
+}
+{
+  const { API } = boot("fivehundred:game:v2", JSON.stringify({version:2, game:{seats:4}, sides:[], hands:[]}));
+  eq(API.state().game.seats, 2, "invalid seat count rejected, falls back to default");
+}
+
+/* ================= undo ================= */
+group("undo");
+{
+  const { d, API } = boot();
+  click(d, '[data-kind="suit"][data-level="6"][data-suit="0"]');
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "tricks", 6));
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "one hand in");
+  click(d, '[data-role="undo"]');
+  eq(API.state().hands.length, 0, "undo removes it");
+  ok(!chip(d, "seats", 5).disabled, "seat toggle unlocks when the sheet empties");
+}
+
+console.log("\n" + pass + " passed, " + fail + " failed\n");
+process.exit(fail ? 1 : 0);
