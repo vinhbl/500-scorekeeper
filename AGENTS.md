@@ -12,8 +12,9 @@ A scorekeeper for the card game 500. One vanilla-JS web app, no build step, no f
 no dependencies. It ships three ways from one codebase:
 
 - **Web / PWA** — GitHub Pages serves `docs/` at https://vinhbl.github.io/500-scorekeeper/
-- **iOS** — Capacitor wrapper (`ios/`), bundle ID `com.vinhbl.fivehundred`
-- **Android** — Capacitor wrapper (`android/`)
+- **iOS** — Capacitor wrapper (`ios/`), bundle ID `com.vinhbl.fivehundred` — **the active target**
+- **Android** — Capacitor project is scaffolded (`android/`) but has never been built or run.
+  **Out of scope. Do not build, test, or modify it.**
 
 Supports 2-side partnership play, 3-player cutthroat, and 5-player with called partners.
 
@@ -90,6 +91,10 @@ Progressive disclosure is data, not render logic. Hidden rules keep their stored
 
 - **Vanilla JS, ES5-compatible style, no dependencies.** The no-build-step property is deliberate —
   it is why this app will still run in five years. Do not add a framework or a bundler.
+- **Android is a long-term goal, so avoid foreclosing it** — but no Android work happens now. This
+  matters mainly for the sync/handoff item in `product/BACKLOG.md`, where an iOS-only choice like
+  MultipeerConnectivity would rule Android out later. It does not apply to the Live Activity work,
+  which is iOS-only by nature.
 - **No `localStorage` in artifacts or demos** — use an in-memory shim.
 - Storage key is `fivehundred:game:v2`. The v1 key is read as a fallback and migrated.
 - Prefer editing existing files over creating new ones.
