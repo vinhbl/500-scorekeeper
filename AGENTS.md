@@ -117,21 +117,21 @@ goes in a new spec or an ADR.
 
 ## Current work
 
-Building a Live Activity / Dynamic Island scoreboard.
-Spec: `product/specs/dynamic-island-scoreboard.md` — **partly superseded, read the amendment at the
-top and `product/decisions/0006-defer-landscape-dynamic-island.md` before starting.**
+**No milestone is active.** The Live Activity / Dynamic Island work is **deprioritised and moved to
+`product/BACKLOG.md`** — do not start M1. Its spec (`product/specs/dynamic-island-scoreboard.md`)
+and ADR 0006 remain as records; M0 is complete and its findings stand.
 
-**M0 is done. M1 (scaffolding) is the active milestone. M4 (landscape) is deferred — do not build
-it.** The spec's §4.4, §6.1 `orientation`, §6.4, §8.1 and M4 are superseded by ADR 0006; they are
-left in place as the historical record.
+Reason: iOS hides an app's own Live Activity in the Dynamic Island while that app is frontmost, and
+the real requirement was seeing the score *during* play with the bid table in landscape. The island
+cannot serve that.
 
-Two M0 findings that will bite during M1–M3:
+**Next work is in `product/BACKLOG.md` under "Bugs" and "Onboarding and in-play clarity"** — all web
+layer, no native code. The misère clipping bug in landscape is a regression and the cheapest
+starting point.
 
-- **The island hides a Live Activity while its own app is frontmost.** A test harness needs a second
-  app or a backgrounded owner.
-- **`Text("\(intValue)")` inserts grouping separators** — `1000` renders as `1,000`. Totals can
-  exceed 999 in a lingering finished game. Use `String(value)` or
-  `.formatted(.number.grouping(.never))`.
+**Layout changes must be verified on a device or simulator.** Two landscape bugs have now shipped
+past passing tests. CSS assertions in `test/landscape.test.js` check source text, not geometry, and
+one of them currently asserts something that is false.
 
 ## Safety
 

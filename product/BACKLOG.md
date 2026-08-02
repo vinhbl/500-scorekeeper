@@ -8,6 +8,70 @@ Parked items, to prioritize and cut later. Committed work is tracked separately:
 
 ---
 
+## Bugs
+
+### Misère bids are clipped out of the landscape bid table
+**Regression, not a missing feature.** The landscape media query styles `.specials` correctly, but
+`table.bids{flex:1;height:100%}` claims the full content height of `.sheet`, and the base
+`.sheet{overflow:hidden}` clips whatever is left. The misère and open-misère buttons are pushed out
+of the viewport entirely.
+
+Found in play: a misère bid forced rotating back to portrait and then back again.
+
+`test/landscape.test.js` asserts *"specials (misère bids) stay visible"* and passes — it only checks
+that no `display:none` rule targets `#specials`. That is a claim about CSS source text, not about
+layout. **The test should be replaced with something that measures rendered geometry, or deleted as
+misleading.** This is the second landscape layout bug to survive a passing test (the first was the
+clipped padding fix); layout in this project needs device verification, not assertions.
+
+Fix likely means giving the table `flex:1` without `height:100%` and letting `.specials` keep its
+own row — but it must be checked on a real phone, in both a short viewport (SE) and a tall one.
+
+---
+
+## Onboarding and in-play clarity
+
+From playing with people new to 500. These are the highest-value items in this file: they address
+the actual observed failure — the app records a game correctly but does not help anyone *play* it.
+
+### Grey out ineligible bids once a bid is made
+Bidding is ascending, so the moment a bid exists, every lower value in the table is dead. Showing
+the full grid was actively misleading for new players. Grey out or strike through anything at or
+below the current bid.
+
+Notes: misère sits outside the numeric ladder and needs its own rule (most tables allow it over a
+lower suit bid). Needs a clear reset when the hand ends. Pairs naturally with the in-round view
+below.
+
+### Card rank reference for the current trump suit
+The hardest thing for new players to internalise is that with a trump suit named, the joker and the
+left bower *become* that suit — joker highest, right bower second, left bower third, then A K Q 10
+9 8 7 down. Nothing in the app communicates this.
+
+A simple ordered display of the trump suit's ranking, plus a note that the left bower has left its
+printed suit. Should update to whatever suit was actually bid. No-trump and misère need their own
+variants (no bowers; joker's role differs by house rule — check before building).
+
+### In-round view after the bid is confirmed
+**The biggest item here.** Observed workaround: keeping the winning bid selected in the table so the
+table could remember it, then passing the phone around. It failed on two counts — the score was not
+visible, and re-reading the trump suit meant parsing a grid rather than glancing at a fact.
+
+A view shown once a bid is confirmed, holding: the contract and its point value, who bid it, the
+running score, and the trump rank reference above. Glanceable, and the natural thing to leave on
+screen while the hand is played.
+
+This substantially overlaps with what the Live Activity was scoped to do, and does it better —
+in-app, on every platform, visible *while the app is in use*, which the Dynamic Island cannot be.
+Worth designing before reviving any Live Activity work.
+
+### Show the running score in the landscape bid table
+Landscape currently hides `#board` entirely. That was a deliberate call when landscape was framed as
+a bidding-only reference view; the real use includes wanting the score visible at the same time.
+Small CSS change. Likely subsumed by the in-round view, but cheap enough to do first.
+
+---
+
 ## Prerequisites
 
 Not really backlog — these block committed work and should land first.
@@ -109,7 +173,26 @@ Candidates, strongest first:
 - **Share sheet export** of a finished score sheet
 - **Live Activity** showing the running score on the lock screen
 
-### Landscape Dynamic Island (deferred from the Live Activity spec)
+### Live Activity / Dynamic Island scoreboard — DEPRIORITISED
+Full spec at `specs/dynamic-island-scoreboard.md`; M0 is complete and its findings hold. Moved here
+from active work in August 2026.
+
+**Why.** The spec's stated goal was glancing at a locked or closed phone. That was never the actual
+need — the intent was seeing the score *while the app is in use*, with the bid table in landscape.
+iOS does not allow that: the system hides an app's own Live Activity in the Dynamic Island while
+that app is frontmost, and there is no API to override it. Confirmed by the M0 spike and by Apple's
+documented behaviour.
+
+The feature still has value for the case it genuinely serves — the scorekeeper's phone pocketed or
+locked mid-game — but that is a smaller need than the in-round view above, which solves the real
+problem on every platform with no native code.
+
+**Before reviving:** design the in-round view first and play a few games with it. If it satisfies
+the need, this becomes a nice-to-have. Note it was also the candidate native capability for App
+Store review, so deprioritising it leaves that question open — sync/handoff is the stronger
+candidate anyway.
+
+### Landscape Dynamic Island (further deferred — requires iOS 27)
 Rotating the phone should keep the Live Activity score legible on the Dynamic Island. Requires
 **iOS 27**, which is in beta as of August 2026 with general release expected in September. Deferred
 by ADR 0006 rather than built against a beta toolchain.
