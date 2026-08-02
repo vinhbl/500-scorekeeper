@@ -109,6 +109,22 @@ Candidates, strongest first:
 - **Share sheet export** of a finished score sheet
 - **Live Activity** showing the running score on the lock screen
 
+### Landscape Dynamic Island (deferred from the Live Activity spec)
+Rotating the phone should keep the Live Activity score legible on the Dynamic Island. Requires
+**iOS 27**, which is in beta as of August 2026 with general release expected in September. Deferred
+by ADR 0006 rather than built against a beta toolchain.
+
+Two open questions to resolve with a short spike on a real iOS 27 device before writing code:
+
+- Is landscape a **distinct presentation** rather than a rotated portrait view? Apple describes a
+  new style delivering more information in landscape, which would make the spec's ±90° rotation
+  model wrong.
+- **Does the widest real score string fit?** Compact views cannot grow in width in landscape. The
+  comfortable `−500` fit measured in M0 is a portrait property and does not transfer. This is the
+  real risk, not rotation.
+
+*Trigger: iOS 27 general release, plus enough adoption to be worth the work.*
+
 ### Forced orientation
 Once native, orientation can be locked or forced, which overrides the device rotation lock. This
 is the one landscape behavior that cannot be achieved in the PWA. Config change, not rework —

@@ -112,11 +112,21 @@ goes in a new spec or an ADR.
 
 ## Current work
 
-Building a Live Activity / Dynamic Island scoreboard. Spec:
-`product/specs/dynamic-island-scoreboard.md` — decisions are locked, start at M0.
+Building a Live Activity / Dynamic Island scoreboard.
+Spec: `product/specs/dynamic-island-scoreboard.md` — **partly superseded, read the amendment at the
+top and `product/decisions/0006-defer-landscape-dynamic-island.md` before starting.**
 
-M0 is a throwaway spike answering three questions on an iOS 26+ simulator. Do not build the real
-feature during M0.
+**M0 is done. M1 (scaffolding) is the active milestone. M4 (landscape) is deferred — do not build
+it.** The spec's §4.4, §6.1 `orientation`, §6.4, §8.1 and M4 are superseded by ADR 0006; they are
+left in place as the historical record.
+
+Two M0 findings that will bite during M1–M3:
+
+- **The island hides a Live Activity while its own app is frontmost.** A test harness needs a second
+  app or a backgrounded owner.
+- **`Text("\(intValue)")` inserts grouping separators** — `1000` renders as `1,000`. Totals can
+  exceed 999 in a lingering finished game. Use `String(value)` or
+  `.formatted(.number.grouping(.never))`.
 
 ## Safety
 

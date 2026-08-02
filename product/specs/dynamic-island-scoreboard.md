@@ -2,10 +2,25 @@
 
 | | |
 |---|---|
-| **Status** | Reviewed — decisions locked, ready to build (M0 first) |
+| **Status** | M0 complete. **Partly superseded — see amendment below.** Building M1. |
 | **Feature** | A Live Activity that shows the running 2-side score on the Lock Screen and Dynamic Island |
 | **Depends on** | iOS app build (Capacitor + Xcode); a Live Activities Capacitor plugin or a hand-rolled bridge |
 | **Related** | `BACKLOG.md` (native-capability item), `SCHEMA.md` (state model this reads from) |
+
+> ### Amendment — 2026-08-01
+>
+> **M0 is complete, and its findings supersede parts of this spec.** See
+> `../decisions/0006-defer-landscape-dynamic-island.md`.
+>
+> In short: the landscape/orientation sections below name **iOS 26**; the correct version is
+> **iOS 27**, which is in beta and not yet generally released. Landscape support for the Dynamic
+> Island is therefore **deferred**, M4 is removed from the milestone set, and the `orientation`
+> field is dropped from `ContentState` for v1.
+>
+> **§4.4, §6.1 (`orientation`), §6.4, §8.1, M4, and the landscape acceptance criterion are
+> superseded.** They are left unedited below as the historical record — read them alongside ADR
+> 0006, not instead of it. Everything else in this spec stands, and M0 confirmed the animation and
+> width findings it depended on.
 
 A note on how to read this: sections 1–4 are the *what* and could be reviewed by anyone. Sections 5–7 are the *how* and are written for whoever implements the Swift. Section 8 records the decisions made in review and the one small confirmation the M0 spike still owes.
 
@@ -195,16 +210,15 @@ reopened (§8.1).
 
 | # | Milestone | Done when |
 |---|---|---|
-| **M0** | **Spike** (§8.1) — confirmation | Orientation exposure confirmed on an iOS 26+ device; `numericText` confirmed in a Live Activity; widest compact string (`−500`) confirmed to fit |
+| ~~M0~~ | ~~Spike~~ — **DONE 2026-08-01** | `numericText` confirmed animating; `−500` confirmed to fit in portrait; orientation found unavailable on iOS 26 → ADR 0006 |
 | M1 | Scaffolding | Extension target, attributes, App Group, plugin skeleton, `isSupported` returns correctly on device |
 | M2 | Static scoreboard | start/update/end drive the compact + Lock Screen views from real hands; custom names in expanded/Lock Screen; win lingers with real totals |
 | M3 | Animation | Scores roll, correct direction, on every update |
-| M4 | Orientation (iOS 26+) | On iOS 26+, numbers rotate with device orientation; on the 17–25 floor, they render unrotated with no regression |
+| ~~M4~~ | ~~Orientation~~ — **DEFERRED to iOS 27 GA** (ADR 0006) | Moved to `BACKLOG.md`. Not in scope for v1. |
 | M5 | Polish | App palette; minimal + expanded states; extremes (`−500`, `500+`, tie); linger-then-clear verified across new-game and swipe |
 
-M0 is no longer gating exploration — the orientation approach is decided (§8.1). It's kept as a
-short confirmation pass because verifying `numericText` and the landscape exposure on a real
-device before M1 is still cheaper than discovering a surprise mid-build.
+M0 earned its place: it caught a version error baked into this spec before any implementation
+depended on it. M1 is now the active milestone.
 
 ## 8. Resolved decisions and remaining risk
 
@@ -240,7 +254,7 @@ the widest compact string (`−500`) fits. None of these is expected to block; t
 - [ ] No activity exists until the first score of a 2-side game; none ever for 3/5-player games.
 - [ ] Compact island shows Us left, Them right, matching the sheet exactly after every hand, undo, and rescore.
 - [ ] A score increase rolls up; a decrease (failed bid, −500) rolls down.
-- [ ] On iOS 26+, landscape shows the score rotated and legible, sides not swapped; on iOS 17–25 it shows unrotated with no regression.
+- [ ] ~~Landscape rotation~~ — deferred, ADR 0006. All supported versions render unrotated.
 - [ ] Expanded and Lock Screen show the custom side names (default Us/Them); compact and minimal are numbers-only.
 - [ ] A win lets the activity linger showing the real final totals (e.g. 560/300), not a value clamped at 500.
 - [ ] Once a side crosses 500, the expanded bottom line reads `{winner} wins!` with the custom name, replacing distance-to-500.
@@ -248,5 +262,6 @@ the widest compact string (`−500`) fits. None of these is expected to block; t
 - [ ] The activity clears on a new game (setup button or seat-count change) and on a manual swipe; a swipe keeps it gone for the same game.
 - [ ] Tapping the island launches the app (plain launch, no deep-link).
 - [ ] Three-digit and negative totals render without clipping in the compact view.
+- [ ] Totals render without grouping separators — `1000`, never `1,000` (M0 finding).
 - [ ] Colours, type, and keyline read as the same object as the app.
 ```
