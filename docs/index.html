@@ -242,7 +242,10 @@
       flex:1;margin:0;border-radius:4px;padding:9px 11px;
       display:flex;flex-direction:column;min-height:0;
     }
-    table.bids{flex:1;height:100%}
+    /* flex:1 fills the leftover height; min-height:0 lets it shrink so
+       .specials (flex:none) keeps its own row instead of being pushed past
+       .sheet's overflow:hidden. Do NOT reintroduce height:100% here. */
+    table.bids{flex:1;min-height:0}
     table.bids th{padding:1px 0 6px}
     table.bids th.suit{font-size:27px}
     th.s-notrump{font-size:15px;letter-spacing:.04em}

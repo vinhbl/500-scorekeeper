@@ -39,6 +39,11 @@ them to pass. Missing guidance on: tests asserting implementation rather than be
 pass trivially, and the worst case — a failing test edited until it passes. Needs explicit rules on
 who may change a test, when, and how to recognise a suite that has become decorative.
 
+A concrete instance, Aug 2026: `test/landscape.test.js` asserted the literal string
+`table.bids{flex:1;height:100%}` — the exact CSS that caused the misère clipping bug. The test
+pinned the implementation, so fixing the bug turned the suite red and the "failing" test had to be
+rewritten. A test that asserts implementation rather than behaviour defends the defect.
+
 *Trigger: before delegating test authorship broadly.*
 
 ### The quality lag

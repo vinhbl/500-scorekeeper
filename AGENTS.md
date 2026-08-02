@@ -29,7 +29,7 @@ npx cap sync                   # copy docs/ into ios/ and android/ — after ANY
 npx cap open ios               # opens Xcode
 ```
 
-All three test suites must pass before any commit. 109 assertions total.
+All three test suites must pass before any commit. 110 assertions total.
 
 ## Layout
 
@@ -125,13 +125,14 @@ Reason: iOS hides an app's own Live Activity in the Dynamic Island while that ap
 the real requirement was seeing the score *during* play with the bid table in landscape. The island
 cannot serve that.
 
-**Next work is in `product/BACKLOG.md` under "Bugs" and "Onboarding and in-play clarity"** — all web
-layer, no native code. The misère clipping bug in landscape is a regression and the cheapest
-starting point.
+**Next work is in `product/BACKLOG.md` under "Onboarding and in-play clarity"** — all web layer, no
+native code. The misère landscape clipping bug is **fixed**; what remains under "Bugs" is that the
+landscape assertions do not measure geometry.
 
 **Layout changes must be verified on a device or simulator.** Two landscape bugs have now shipped
-past passing tests. CSS assertions in `test/landscape.test.js` check source text, not geometry, and
-one of them currently asserts something that is false.
+past passing tests, and `test/landscape.test.js` checks CSS source text, not geometry — treat it as
+a lint, not a guarantee. The misère bug did not reproduce in Chrome at all; it is WebKit-only, and
+the app ships in WKWebView. Blink is not a substitute for a real device here.
 
 ## Safety
 

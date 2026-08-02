@@ -10,22 +10,23 @@ Parked items, to prioritize and cut later. Committed work is tracked separately:
 
 ## Bugs
 
-### Misère bids are clipped out of the landscape bid table
-**Regression, not a missing feature.** The landscape media query styles `.specials` correctly, but
-`table.bids{flex:1;height:100%}` claims the full content height of `.sheet`, and the base
-`.sheet{overflow:hidden}` clips whatever is left. The misère and open-misère buttons are pushed out
-of the viewport entirely.
+### ~~Misère bids are clipped out of the landscape bid table~~ — fixed
+`table.bids` no longer sets `height:100%`; `flex:1;min-height:0` lets it shrink so `.specials`
+keeps its own row instead of being pushed past `.sheet{overflow:hidden}`. The landscape suite now
+asserts the new rule and guards against `height:100%` returning.
 
-Found in play: a misère bid forced rotating back to portrait and then back again.
+Worth remembering: the bug did **not** reproduce in Chrome. Driving real Chrome under phone-landscape
+emulation (so `pointer:coarse` matched) at 667×375, 844×390 and 956×440, `#specials` sat inside the
+sheet in every case. It is a WebKit/WKWebView behaviour, which is where the app actually ships.
+Blink is not a substitute for device verification here.
 
-`test/landscape.test.js` asserts *"specials (misère bids) stay visible"* and passes — it only checks
-that no `display:none` rule targets `#specials`. That is a claim about CSS source text, not about
-layout. **The test should be replaced with something that measures rendered geometry, or deleted as
-misleading.** This is the second landscape layout bug to survive a passing test (the first was the
-clipped padding fix); layout in this project needs device verification, not assertions.
-
-Fix likely means giving the table `flex:1` without `height:100%` and letting `.specials` keep its
-own row — but it must be checked on a real phone, in both a short viewport (SE) and a tall one.
+### Landscape assertions do not measure geometry
+`test/landscape.test.js` asserts *"specials (misère bids) stay visible"* by checking only that no
+`display:none` rule targets `#specials` — a claim about CSS source text, not layout. It passed
+throughout the clipping bug above. Real coverage means measuring rendered geometry (that `#specials`
+sits inside `.sheet`'s box at a phone-landscape viewport), which needs a real browser and therefore a
+test dependency this repo deliberately does not have. Until that trade is made, treat the landscape
+suite as a lint, not a guarantee. Two landscape bugs have now shipped past it.
 
 ---
 
