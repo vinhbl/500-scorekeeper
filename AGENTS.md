@@ -36,7 +36,7 @@ All three test suites must pass before any commit. 109 assertions total.
 ```
 docs/            THE WEB APP — index.html, app.js, sw.js, manifest, icons
 ios/             Capacitor iOS project (committed — holds native Swift)
-android/         Capacitor Android project (committed)
+android/         Capacitor Android project (committed) — out of scope, see above
 test/            test suites (not deployed)
 product/         specs, backlog, decisions, guides
 ```
