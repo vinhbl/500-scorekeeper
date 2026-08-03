@@ -18,3 +18,4 @@ android/app/build/
 android/.gradle/
 android/local.properties
 android/app/src/main/assets/public/
+graphify-out/
