@@ -40,11 +40,35 @@ Struck-out, disabled cells for anything at or below the standing bid; the header
 tapping the standing bid again clears it. Ranking is by **point value**, so misère (250) and open
 misère (500) take part in the ladder rather than sitting outside it.
 
-**Open house rule:** some tables rank misère by its own convention rather than by points — commonly
-that it sits between the 7 and 8 levels regardless of its 250 value. The current behaviour is
-internally consistent with the table's own ordering, but it is a choice. Confirm against how your
-table plays before treating it as settled; if it differs, this belongs in the rules panel alongside
-the other house rules.
+Point-value ranking is a documented variation but **not the most common one** — see the toggles
+below. Left as-is deliberately; revisit if it disagrees with how the table actually plays.
+
+### Two misère house-rule toggles
+The bid table currently ranks every contract by point value. Two conventions are common enough to
+be worth offering, and both slot into the existing rules panel with no new machinery.
+
+**`misereUnder8` — "8♠ beats misère"** *(ranking / ceiling)*
+The traditional Australian ranking puts misère between 7NT and 8♠, so **any** 8-level bid beats it —
+including 8♠ at 240, which is worth less in points but higher in the auction. The app currently
+ranks misère at its 250 value, so 8♠ does not beat it. This is the difference people will notice at
+the table, and the more common convention of the two orderings.
+
+*Implementation:* an effective bid-rank separate from `value`, used only by the outbid comparison.
+Scoring is untouched — misère still pays 250 either way.
+
+**`misereAfter7` — "misère requires a 7-level bid first"** *(availability / floor)*
+Many tables forbid opening the bidding with misère; someone must bid at the 7-level first. Stricter
+versions also disallow it after only 6-level bids. The app currently allows misère as an opening
+bid. This is a **floor**, a genuinely separate rule from ranking, and needs the app to know whether
+any 7-level bid has been made this hand — which the current draft model does not track.
+
+*Deliberately not building:* open-misère ranking (unsettled across every source — between 9NT and
+10♠, between 10♦ and 10♥, tied with 10♥ or 10NT, or unbeatable; the app's tie behaviour matches the
+"whichever is bid first excludes the other" convention) and alternate misère scores (150/210/230/250,
+open 330/430/500/520). Both are deep house-rule territory and rarely come up.
+
+*Trigger: the ranking disagrees with how the table actually plays. If everyone plays 8♠-beats-misère,
+change the default instead of adding a toggle — one fewer setting.*
 
 *Original entry:*
 
