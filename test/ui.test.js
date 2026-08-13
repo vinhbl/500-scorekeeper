@@ -243,5 +243,81 @@ group("undo");
   ok(!chip(d, "seats", 5).disabled, "seat toggle unlocks when the sheet empties");
 }
 
+/* ================= bid eligibility ================= */
+group("outbid cells");
+
+function cellVal(d, lv, si){
+  return d.querySelector('[data-kind="suit"][data-level="'+lv+'"][data-suit="'+si+'"]');
+}
+
+{
+  const { d, API } = boot();
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 0, "nothing struck out before a bid");
+  eq(d.querySelector("#bidNote").textContent, "Avondale", "header shows the scoring name when no bid stands");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 7, 3));                       // 7 hearts = 200
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 8, "everything worth 200 or less is struck out");
+  eq(cellVal(d, 7, 3).classList.contains("dead"), false, "the standing bid itself is not struck out");
+  eq(cellVal(d, 7, 4).disabled, false, "7 no-trumps at 220 stays available");
+  eq(cellVal(d, 6, 0).disabled, true, "an outbid cell is disabled, not merely faded");
+  ok(d.querySelector("#bidNote").textContent.indexOf("stands") > -1, "header names the standing bid");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));                       // 8 hearts = 300
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 13, "a higher bid strikes out more of the table");
+  eq(d.querySelectorAll("#specials .cell.dead").length, 1, "misère at 250 is outbid by 300");
+  eq(d.querySelector('[data-id="open"]').disabled, false, "open misère at 500 survives");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 7, 3));                       // 200
+  eq(d.querySelectorAll("#specials .cell.dead").length, 0, "both misères outrank a 200 bid");
+}
+
+/* misère participates in the ladder rather than sitting outside it */
+{
+  const { d } = boot();
+  click(d, d.querySelector('[data-id="misere"]'));  // 250
+  /* 5 at level 6, 5 at level 7, plus 8 spades at 240 */
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 11,
+     "selecting misère strikes out every suit bid worth 250 or less");
+  eq(cellVal(d, 8, 1).disabled, false, "8 clubs at 260 still outranks misère");
+}
+
+/* the way back from a mis-tap */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 10, 4));                      // 520 — strikes out everything
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 24, "a top bid strikes out the rest of the table");
+  click(d, cellVal(d, 10, 4));                      // tap it again
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 0, "tapping the standing bid again clears it");
+  eq(d.querySelector("#bidNote").textContent, "Avondale", "header returns to its resting state");
+  eq(d.querySelector("#scoreBtn"), null, "clearing the contract returns the record panel to idle");
+}
+
+/* an outbid cell cannot be selected even if a click reaches it */
+{
+  const { d, API } = boot();
+  click(d, cellVal(d, 8, 3));                       // 300 stands
+  click(d, cellVal(d, 6, 0));                       // 40 — outbid
+  eq(API.state().hands.length, 0, "no hand recorded");
+  eq(d.querySelector("#bidNote").textContent.indexOf("8") > -1, true, "the standing bid is unchanged");
+}
+
+/* scoring a hand resets eligibility for the next one */
+{
+  const { d, API } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "tricks", 8));
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "hand recorded");
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 0, "the next hand starts with a clean table");
+}
+
 console.log("\n" + pass + " passed, " + fail + " failed\n");
 process.exit(fail ? 1 : 0);
+

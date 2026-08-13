@@ -134,6 +134,12 @@
   .cell:hover{background:rgba(14,26,43,.07)}
   .cell:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
   .cell[aria-pressed="true"]{color:var(--bone);border-color:transparent;transform:translateY(-1px)}
+  /* outbid — still legible as a reference, clearly not a choice */
+  .cell.dead{
+    opacity:.26;text-decoration:line-through;text-decoration-thickness:1px;
+    cursor:not-allowed;
+  }
+  .cell.dead:hover{background:transparent}
   .cell.c-spades[aria-pressed="true"],.cell.c-clubs[aria-pressed="true"]{background:var(--black)}
   .cell.c-diamonds[aria-pressed="true"],.cell.c-hearts[aria-pressed="true"]{background:var(--red)}
   .cell.c-notrump[aria-pressed="true"]{background:var(--gold);color:var(--ink)}
@@ -342,7 +348,7 @@
   <section class="board" id="board"></section>
   <div id="banner"></div>
 
-  <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note">Avondale</div></div>
+  <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
   <section class="sheet">
     <table class="bids" id="bidTable"></table>
     <div class="specials" id="specials"></div>

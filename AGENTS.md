@@ -21,8 +21,11 @@ Supports 2-side partnership play, 3-player cutthroat, and 5-player with called p
 ## Commands
 
 ```bash
+npm install                    # once — jsdom is a devDependency
+npm test                       # all three suites; fails fast if deps are missing
+
 node test/scoring.test.js      # scoring engine + migration — no dependencies
-node test/ui.test.js           # drives the real page in jsdom — needs: npm i jsdom
+node test/ui.test.js           # drives the real page in jsdom
 node test/landscape.test.js    # landscape CSS assertions
 
 npx cap sync                   # copy docs/ into ios/ and android/ — after ANY web change

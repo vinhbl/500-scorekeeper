@@ -35,7 +35,20 @@ suite as a lint, not a guarantee. Two landscape bugs have now shipped past it.
 From playing with people new to 500. These are the highest-value items in this file: they address
 the actual observed failure — the app records a game correctly but does not help anyone *play* it.
 
-### Grey out ineligible bids once a bid is made
+### Grey out ineligible bids once a bid is made — SHIPPED
+Struck-out, disabled cells for anything at or below the standing bid; the header names what stands;
+tapping the standing bid again clears it. Ranking is by **point value**, so misère (250) and open
+misère (500) take part in the ladder rather than sitting outside it.
+
+**Open house rule:** some tables rank misère by its own convention rather than by points — commonly
+that it sits between the 7 and 8 levels regardless of its 250 value. The current behaviour is
+internally consistent with the table's own ordering, but it is a choice. Confirm against how your
+table plays before treating it as settled; if it differs, this belongs in the rules panel alongside
+the other house rules.
+
+*Original entry:*
+
+### ~~Grey out ineligible bids once a bid is made~~
 Bidding is ascending, so the moment a bid exists, every lower value in the table is dead. Showing
 the full grid was actively misleading for new players. Grey out or strike through anything at or
 below the current bid.

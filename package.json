@@ -7,7 +7,8 @@
     "test": "node test/scoring.test.js && node test/landscape.test.js && node test/ui.test.js",
     "test:scoring": "node test/scoring.test.js",
     "test:ui": "node test/ui.test.js",
-    "test:landscape": "node test/landscape.test.js"
+    "test:landscape": "node test/landscape.test.js",
+    "pretest": "node test/_check-deps.js"
   },
   "repository": {
     "type": "git",

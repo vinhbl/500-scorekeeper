@@ -66,6 +66,11 @@
     return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null};
   }
 
+  function clearContract(){
+    draft.contract = null; draft.tricks = null; draft.defSplit = null;
+    renderBidTable(); renderRecord();
+  }
+
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
   function $(id){ return document.getElementById(id); }
   function esc(s){
@@ -306,6 +311,19 @@
         : '<div class="banner out"><span>'+esc(S.sides[o.side].name)+' is out the back door</span><span>\u2212500</span></div>';
   }
 
+  /* Bidding only goes up, so once a bid stands everything worth the same or
+     less is out of reach. Ranking is by point value, which is the order the
+     table already shows — that lets mis\u00e8re (250) and open mis\u00e8re (500) take
+     part rather than sitting outside the ladder.
+     NOTE: some tables rank mis\u00e8re by its own convention rather than by points.
+     See product/BACKLOG.md before treating this as settled. */
+  function standingValue(){
+    return draft.contract ? draft.contract.value : 0;
+  }
+  function outbid(value){
+    return value <= standingValue();
+  }
+
   function renderBidTable(){
     var head = '<tr><th></th>' + SUITS.map(function(s){
       return '<th class="suit s-'+s.key+'">'+s.glyph+'</th>';
@@ -315,9 +333,11 @@
       return '<tr><td class="lvl">'+lv+'</td>' + SUITS.map(function(s,si){
         var v = bidValue(lv,si);
         var sel = draft.contract && draft.contract.type==="suit" && draft.contract.level===lv && draft.contract.suit===s.key;
-        return '<td><button class="cell c-'+s.key+'" aria-pressed="'+(!!sel)+'" '+
+        var dead = !sel && outbid(v);
+        return '<td><button class="cell c-'+s.key+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
+          (dead?' disabled':'')+' '+
           'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
-          'aria-label="'+lv+' '+s.name+', '+v+' points">'+v+'</button></td>';
+          'aria-label="'+lv+' '+s.name+', '+v+' points'+(dead?', outbid':'')+'">'+v+'</button></td>';
       }).join("") + '</tr>';
     }).join("");
 
@@ -326,9 +346,15 @@
     var specs = [{id:"misere",label:"Mis\u00e8re",value:250},{id:"open",label:"Open mis\u00e8re",value:500}];
     $("specials").innerHTML = specs.map(function(sp){
       var sel = draft.contract && draft.contract.type==="misere" && draft.contract.id===sp.id;
-      return '<button class="cell spec c-misere" aria-pressed="'+(!!sel)+'" data-kind="misere" data-id="'+sp.id+'">'+
+      var dead = !sel && outbid(sp.value);
+      return '<button class="cell spec c-misere'+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
+        (dead?' disabled':'')+' data-kind="misere" data-id="'+sp.id+'"'+
+        ' aria-label="'+sp.label+', '+sp.value+' points'+(dead?', outbid':'')+'">'+
         sp.label+'<b>'+sp.value+'</b></button>';
     }).join("");
+
+    var note = $("bidNote");
+    if(note) note.textContent = draft.contract ? draft.contract.label + " stands" : "Avondale";
   }
 
   function declaringFromDraft(){
@@ -517,15 +543,27 @@
 
     if(b.dataset.kind === "suit"){
       var lv = +b.dataset.level, si = +b.dataset.suit, s = SUITS[si];
-      draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:bidValue(lv,si)};
+      var v = bidValue(lv,si);
+      /* tapping the standing bid again clears it — the way back from a mis-tap,
+         since everything below it is disabled */
+      if(draft.contract && draft.contract.type==="suit" && draft.contract.level===lv && draft.contract.suit===s.key){
+        clearContract(); return;
+      }
+      if(outbid(v)) return;
+      draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
       draft.tricks = null; draft.defSplit = null;
       renderBidTable(); renderRecord(); return;
     }
     if(b.dataset.kind === "misere"){
       var id = b.dataset.id;
+      var mv = id==="open" ? 500 : 250;
+      if(draft.contract && draft.contract.type==="misere" && draft.contract.id===id){
+        clearContract(); return;
+      }
+      if(outbid(mv)) return;
       draft.contract = {type:"misere", id:id,
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
-        value: id==="open" ? 500 : 250};
+        value: mv};
       draft.tricks = null; draft.defSplit = null;
       renderBidTable(); renderRecord(); return;
     }
