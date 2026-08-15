@@ -294,18 +294,19 @@
     body{padding:0;overflow:hidden}
     .mast,#board,#banner,.head,#record,#log,details.rules,.colophon{display:none!important}
     /* in-round view takes the screen the same way the bid table does */
-    #roundView{flex:1;display:flex}
-    #roundView .round{
+    .round-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+    .round-wrap .round-cancel{flex:none;margin-top:8px}
+    .round-wrap .round{
       flex:1;grid-template-columns:118px 1fr;
-      border-radius:4px;
+      border-radius:4px;min-height:0;
     }
-    #roundView .round .left{
+    .round-wrap .round .left{
       border-bottom:0;border-right:1px solid var(--line);
       flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;
       padding:13px 14px;
     }
-    #roundView .round .kv{text-align:left}
-    #roundView .ranks{display:flex;flex-direction:column;justify-content:center;padding:13px 15px}
+    .round-wrap .round .kv{text-align:left}
+    .round-wrap .ranks{display:flex;flex-direction:column;justify-content:center;padding:13px 15px}
     main.wrap{
       max-width:none;margin:0;height:100vh;height:100dvh;
       padding:calc(7px + var(--safe-t)) calc(7px + var(--safe-r)) calc(7px + var(--safe-b)) calc(7px + var(--safe-l));
@@ -398,6 +399,15 @@
   .dlg-cancel{background:transparent;color:var(--bone)}
   .dlg-cancel:hover{background:rgba(239,233,220,.08)}
   .dlg-actions button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+
+  /* LAST RULE ON PURPOSE.
+     The bid table and the in-round view are swapped by toggling the hidden
+     attribute from JS. Rules above set display on those same elements — .head,
+     .sheet, and the landscape .round-wrap block — and a class selector ties with
+     [hidden] on specificity, so whichever comes last wins. Keeping this at the
+     end means hidden wins on source order, and !important covers anything more
+     specific. Three landscape bugs have come from display beating hidden. */
+  [hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -422,7 +432,7 @@
   </section>
 
   <div class="head" id="roundHead" hidden><h2>Hand in progress</h2><div class="rule"></div></div>
-  <section id="roundView" hidden></section>
+  <section id="roundView" class="round-wrap" hidden></section>
 
   <div class="head"><h2>Record a hand</h2><div class="rule"></div></div>
   <section class="panel" id="record"></section>

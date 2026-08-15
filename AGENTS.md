@@ -61,7 +61,12 @@ These have each cost real time. They are the reason this file exists.
    dependencies; the project alone produces confusing build errors.
 4. **Never edit `v1_to_v2()` to change the schema.** Add a new step to the `migrate()` chain.
    Editing an existing migration breaks anyone whose stored data is mid-chain.
-5. **Tests cannot verify layout, animation, or device behaviour.** A landscape CSS fix once shipped
+5. **`[hidden]` must stay the last rule in `docs/index.html`'s stylesheet.** The bid table and
+   in-round view are swapped by toggling the `hidden` attribute from JS, and several class rules
+   set `display` on those same elements. A class ties with `[hidden]` on specificity, so source
+   order decides. Never set `display` on `#roundView` or `#bidSheet` via an **id** selector — an id
+   outranks `[hidden]`, and jsdom ignores `!important`, so the test would pass while the app broke.
+6. **Tests cannot verify layout, animation, or device behaviour.** A landscape CSS fix once shipped
    with passing tests and clipped content on a real phone. Anything visual or device-specific must
    be run on a simulator or device before it is called done.
 

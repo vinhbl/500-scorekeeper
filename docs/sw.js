@@ -1,5 +1,5 @@
 /* Bump CACHE whenever you edit index.html, so phones pick up the change. */
-var CACHE = "five-hundred-v5";
+var CACHE = "five-hundred-v6";
 
 var SHELL = [
   "./",
