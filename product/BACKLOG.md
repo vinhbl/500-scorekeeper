@@ -90,7 +90,30 @@ A simple ordered display of the trump suit's ranking, plus a note that the left 
 printed suit. Should update to whatever suit was actually bid. No-trump and misère need their own
 variants (no bowers; joker's role differs by house rule — check before building).
 
-### In-round view after the bid is confirmed
+### In-round view after the bid is confirmed — SHIPPED (first pass)
+A "Confirm bid" button on the bid table begins the hand; the in-round view then **replaces** the
+bid table, showing the contract, who bid it (plus partner or "alone" at five players), the point
+value, and the card-rank reference for the trump suit. "Cancel this hand" returns to the table.
+Landscape splits it into two columns.
+
+Deliberately rough — this was built to test the feel before investing in the surrounding
+interaction. Still open:
+
+- The confirm step is a plain button. Item 3 (a more seamless bid-confirm / record-result
+  transition) will likely replace it.
+- Whether the in-round view should also be reachable *after* recording, to review the hand.
+- The record panel still sits below the in-round view rather than being part of it.
+- **Misère borrows the no-trump ladder.** Correct as far as trumps go, but the joker's role in
+  misère varies by house rule — some tables play it low, which would invert the reference. Confirm
+  before treating the displayed order as fact.
+- **Deck composition is inferred from seat count**, not from a rule: 3 players → 33 cards (floor
+  of 7), 2 sides → 43 cards (red to 4, black to 5), 5 players → 53 cards (to 2). Some tables strike
+  the 4 of spades and 4 of diamonds instead of both black fours, which would change the black-suit
+  floor. Not yet confirmed against how the table actually deals.
+
+*Original entry:*
+
+### ~~In-round view after the bid is confirmed~~
 **The biggest item here.** Observed workaround: keeping the winning bid selected in the table so the
 table could remember it, then passing the phone around. It failed on two counts — the score was not
 visible, and re-reading the trump suit meant parsing a grid rather than glancing at a fact.

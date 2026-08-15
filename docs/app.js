@@ -63,12 +63,19 @@
   var draft = blankDraft();
 
   function blankDraft(){
-    return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null};
+    return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null, confirmed:false};
   }
 
   function clearContract(){
-    draft.contract = null; draft.tricks = null; draft.defSplit = null;
-    renderBidTable(); renderRecord();
+    draft.contract = null; draft.tricks = null; draft.defSplit = null; draft.confirmed = false;
+    renderAll();
+  }
+
+  /* everything needed before a bid can be confirmed and the hand begun */
+  function readyToConfirm(){
+    if(!draft.contract || draft.bidder == null) return false;
+    if(S.game.seats === 5 && draft.partner == null) return false;
+    return true;
   }
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -287,6 +294,119 @@
     if(run && fn) fn();
   }
 
+
+  /* ---------- card rank reference ----------
+     Deck composition follows seat count:
+       3 players -> 33 cards, 7 is the lowest in every suit
+       2 sides   -> 43 cards, red suits run to 4, black only to 5
+       5 players -> 53 cards, full deck down to 2
+     NOTE: some tables strike the 4 of spades and 4 of diamonds instead of both
+     black fours. See product/BACKLOG.md. */
+  var PAIR = {spades:"clubs", clubs:"spades", diamonds:"hearts", hearts:"diamonds"};
+  var SINGULAR = {spades:"spade", clubs:"club", diamonds:"diamond", hearts:"heart"};
+  var JOKER_CAP =
+    '<svg class="jk" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+
+    '<circle cx="3.9" cy="8" r="2.35"/><circle cx="12" cy="5.3" r="2.35"/><circle cx="20.1" cy="8" r="2.35"/>'+
+    '<path d="M12 17V7.4M12 17C9.4 15.6 6.4 12.7 4.6 9.9M12 17c2.6-1.4 5.6-4.3 7.4-7.1" '+
+    'stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<rect x="4.4" y="16.4" width="15.2" height="4.8" rx="1.92"/></svg>';
+  var QUAD =
+    '<span class="quad"><span class="c-blk">\u2660</span><span class="c-red">\u2665</span>'+
+    '<span class="c-blk">\u2663</span><span class="c-red">\u2666</span></span>';
+
+  function suitByKey(k){
+    for(var i=0;i<SUITS.length;i++) if(SUITS[i].key===k) return SUITS[i];
+    return null;
+  }
+  function suitColour(k){ return (k==="hearts"||k==="diamonds") ? "c-red" : "c-blk"; }
+
+  function deckTail(trumpKey){
+    var seats = S.game.seats;
+    if(seats === 3) return null;
+    if(seats === 5) return "6 5 4 3 2";
+    return (trumpKey==="hearts"||trumpKey==="diamonds") ? "6 5 4" : "6 5";
+  }
+
+  function rankCards(trumpKey){
+    var out = [{joker:true}];
+    if(trumpKey === "notrump"){
+      ["A","K","Q","J","10","9","8","7"].forEach(function(r){ out.push({r:r, nt:true}); });
+      return out;
+    }
+    var S1 = suitByKey(trumpKey), P1 = suitByKey(PAIR[trumpKey]);
+    out.push({r:"J", g:S1.glyph, c:suitColour(S1.key), bower:true});
+    out.push({r:"J", g:P1.glyph, c:suitColour(P1.key), bower:true});
+    ["A","K","Q","10","9","8","7"].forEach(function(r){
+      out.push({r:r, g:S1.glyph, c:suitColour(S1.key)});
+    });
+    return out;
+  }
+
+  function renderRanks(trumpKey){
+    var cards = rankCards(trumpKey);
+    var head = trumpKey === "notrump"
+      ? "Card ranks \u00b7 no trumps"
+      : "Card ranks \u00b7 " + suitByKey(trumpKey).name + " are trumps";
+
+    var h = '<div class="ranks"><div class="rk-head">'+head+'</div><div class="cards">';
+    cards.forEach(function(c){
+      if(c.joker){
+        h += '<div class="rcard jk-card"><div class="r sm">JKR</div><div class="s">'+JOKER_CAP+'</div></div>';
+        return;
+      }
+      var body = c.nt ? '<div class="s">'+QUAD+'</div>'
+                      : '<div class="s '+c.c+'">'+c.g+'</div>';
+      h += '<div class="rcard'+(c.bower?" bower":"")+'"><div class="r">'+c.r+'</div>'+body+'</div>';
+    });
+    var tail = deckTail(trumpKey==="notrump" ? "hearts" : trumpKey);
+    if(tail) h += '<div class="rcard tail"><div class="r">'+tail+'</div></div>';
+    h += '</div>';
+
+    h += '<div class="rk-note">' + (trumpKey === "notrump"
+      ? 'No bowers \u2014 every rank counts the same in all four suits. The <b>joker</b> is the highest card.'
+      : 'The <b>jack of '+suitByKey(PAIR[trumpKey]).name.toLowerCase()+'</b> counts as a '+
+        SINGULAR[trumpKey]+' this hand \u2014 it is the <b>left bower</b>, third highest.'
+    ) + '</div></div>';
+    return h;
+  }
+
+  function renderRound(){
+    var on = !!(draft.confirmed && draft.contract);
+    $("bidHead").hidden = on;
+    $("bidSheet").hidden = on;
+    $("roundHead").hidden = !on;
+    $("roundView").hidden = !on;
+    if(!on){ $("roundView").innerHTML = ""; return; }
+
+    var c = draft.contract;
+    var isMis = c.type === "misere";
+    /* mis\u00e8re is played without trumps, so it borrows the no-trump ladder */
+    var trumpKey = isMis ? "notrump" : c.suit;
+
+    var st = isMis
+      ? '<span class="st c-mis">'+c.label+'</span>'
+      : (c.suit === "notrump"
+          ? '<span class="st c-nt">NT</span>'
+          : '<span class="st '+suitColour(c.suit)+'">'+suitByKey(c.suit).glyph+'</span>');
+    var lv = (!isMis) ? '<span class="lv">'+c.level+'</span>' : '';
+
+    var decl = declaringFromDraft();
+    var who = esc(S.sides[draft.bidder].name);
+    if(decl.length > 1) who += ' + ' + esc(S.sides[decl[1]].name);
+    else if(S.game.seats === 5) who += ' <span style="font-weight:400;opacity:.6">alone</span>';
+
+    $("roundView").innerHTML =
+      '<div class="round">'+
+        '<div class="left">'+
+          '<div class="contract">'+lv+st+'</div>'+
+          '<div class="kv"><div class="k">Bid by</div><div class="v">'+who+'</div>'+
+          '<div class="pts">'+c.value+' PTS</div></div>'+
+        '</div>'+
+        renderRanks(trumpKey)+
+      '</div>'+
+      '<button class="round-cancel" data-role="cancelHand">Cancel this hand</button>';
+  }
+
   /* ---------- rendering ---------- */
   function renderBoard(){
     var t = totals();
@@ -376,27 +496,34 @@
     }
     el.className = "panel";
 
+    /* before the bid is confirmed: settle who bid what, then begin the hand */
+    if(!draft.confirmed){
+      var pre = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
+      pre += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
+        S.sides.map(function(sd,i){
+          return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
+        }).join("")+'</div></div>';
+      if(S.game.seats === 5 && draft.bidder != null){
+        pre += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
+          S.sides.map(function(sd,i){
+            if(i === draft.bidder) return "";
+            return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'">'+esc(sd.name)+'</button>';
+          }).join("")+
+          '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'">Alone</button>'+
+          '</div><div class="tally">Whoever held the called card \u2014 or Alone if nobody did.</div></div>';
+      }
+      var canGo = readyToConfirm();
+      pre += '<button class="submit" id="confirmBtn"'+(canGo?'':' disabled')+'>Confirm bid</button>';
+      if(!canGo) pre += '<div class="tally">Pick who bid it'+(S.game.seats===5?' and who they are playing with':'')+'.</div>';
+      el.innerHTML = pre;
+      return;
+    }
+
     var isMis = c.type === "misere";
     var n = S.game.seats;
     var decl = declaringFromDraft();
 
-    var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
-
-    html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
-      S.sides.map(function(sd,i){
-        return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
-      }).join("")+'</div></div>';
-
-    /* partner picker — 5-player only */
-    if(n === 5 && draft.bidder != null){
-      html += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
-        S.sides.map(function(sd,i){
-          if(i === draft.bidder) return "";
-          return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'">'+esc(sd.name)+'</button>';
-        }).join("")+
-        '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'">Alone</button>'+
-        '</div><div class="tally">Whoever held the called card \u2014 or Alone if nobody did.</div></div>';
-    }
+    var html = "";
 
     var bidderName = draft.bidder!=null ? S.sides[draft.bidder].name : "the bidder";
     var whoLabel = decl.length > 1
@@ -531,7 +658,7 @@
     $("rules").innerHTML = html;
   }
 
-  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderLog(); renderRules(); }
+  function renderAll(){ renderBoard(); renderBidTable(); renderRound(); renderRecord(); renderLog(); renderRules(); }
 
   /* ---------- events ---------- */
   document.addEventListener("click", function(e){
@@ -585,6 +712,12 @@
       draft.defSplit[+b.dataset.side] = +b.dataset.i;
       renderRecord(); return;
     }
+    if(b.id === "confirmBtn"){
+      if(!readyToConfirm()) return;
+      draft.confirmed = true;
+      renderAll(); return;
+    }
+    if(role === "cancelHand"){ clearContract(); return; }
     if(b.id === "scoreBtn"){
       if(!readyToScore()) return;
       S.hands.push(buildHand());
