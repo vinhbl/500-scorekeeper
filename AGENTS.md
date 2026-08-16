@@ -137,6 +137,16 @@ bid table, record a hand, card ranks — with dot indicators and no section head
 stays portrait-only. Until then the landscape block hides everything except the bid table, and
 `#reference` is on that hide list.
 
+**Two CSS traps this section already fell into**, both of which passed every structural test:
+
+- **Chip styles must live outside the landscape media query.** They were once written inside the
+  in-round CSS block, and a later edit reinserted them inside `@media (orientation:landscape)`,
+  so the ladder rendered unstyled in portrait. `.rcard` must appear *before* the media query.
+- **`.jk` needs an explicit width.** The joker mark is an inline SVG; unboxed it renders at its
+  intrinsic size and fills the screen.
+
+`test/ui.test.js` now asserts computed styles for both. Markup assertions cannot catch either.
+
 Gotchas that still bite:
 
 - **The island hides a Live Activity while its own app is frontmost** (only relevant if that work

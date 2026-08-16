@@ -256,6 +256,45 @@
     color:rgba(14,26,43,.42);
   }
 
+  /* ---- the ladder itself ---- */
+  .ranks{padding:12px 14px 13px}
+  .ranks .rk-head{
+    font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:rgba(14,26,43,.42);font-weight:700;margin-bottom:8px;
+  }
+  .cards{display:flex;gap:4px;flex-wrap:wrap;align-items:start}
+  .rcard{
+    width:32px;border:1px solid var(--line);border-radius:2px;background:rgba(255,255,255,.45);
+    display:grid;grid-template-rows:13px 15px;align-items:center;justify-items:center;padding:5px 1px;
+  }
+  .rcard .r{
+    font-family:var(--mono);font-size:11px;font-weight:600;line-height:1;
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  }
+  .rcard .r.sm{font-size:9.5px;letter-spacing:.02em}
+  .rcard .s{font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .rcard .s.c-red{color:var(--red);font-size:12.5px}
+  .rcard .s.c-blk{color:var(--black)}
+  .rcard.jk-card{background:var(--gold);border-color:var(--gold)}
+  .rcard.jk-card .r,.rcard.jk-card .s{color:var(--ink)}
+  .rcard.bower{box-shadow:inset 0 0 0 1.5px var(--gold)}
+  .rcard.tail{background:transparent;border-style:dashed;width:auto;padding:5px 8px}
+  .rcard.tail .r{
+    grid-row:2;font-size:9.5px;letter-spacing:.09em;color:rgba(14,26,43,.45);font-weight:500;
+  }
+  /* the joker mark is an inline svg — without an explicit box it renders at
+     its intrinsic size, which is enormous */
+  .jk{width:15px;height:15px;display:block}
+  .quad{display:grid;grid-template-columns:1fr 1fr;gap:0 1px;place-items:center;line-height:1}
+  .quad span{font-size:6.5px;line-height:1.05}
+  .quad .c-red{color:var(--red);font-size:7px}
+  .quad .c-blk{color:var(--black)}
+  .rk-note{
+    font-size:10px;color:rgba(14,26,43,.55);margin-top:9px;line-height:1.4;
+    padding-top:8px;border-top:1px solid var(--line);
+  }
+  .rk-note b{color:var(--ink);font-weight:700}
+
   /* ---------- landscape: full-screen bid table for the table ----------
      Phone landscape only. Guarded by max-height + coarse pointer so desktop
      and tablet portrait keep the normal column layout. The use case is a
@@ -263,6 +302,7 @@
      Tapping still selects a contract, which carries back to portrait. */
   @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
     body{padding:0;overflow:hidden}
+
     .mast,#board,#banner,.head,#record,#reference,#log,details.rules,.colophon{display:none!important}
     main.wrap{
       max-width:none;margin:0;height:100vh;height:100dvh;

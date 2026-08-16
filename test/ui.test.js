@@ -398,6 +398,26 @@ group("round reference");
   ok(d.querySelector("#reference .contract").textContent.indexOf("Mis") > -1, "mis\u00e8re contract shown");
 }
 
+/* ---- the ladder must actually be styled ----
+   These rules were once written inside the in-round CSS block and were deleted
+   wholesale with it. Every structural test still passed while the section
+   rendered as unstyled text and a full-page joker mark. Assert computed style,
+   not markup. */
+{
+  const { d, w } = boot();
+  click(d, cellVal(d, 8, 3));
+  const chip = d.querySelector("#reference .rcard");
+  const cs = w.getComputedStyle(chip);
+  eq(cs.display, "grid", "a rank chip is laid out as a grid, not raw text");
+  eq(cs.width, "32px", "and has an explicit width");
+  const mark = d.querySelector("#reference .jk");
+  ok(mark, "the joker mark is present");
+  eq(w.getComputedStyle(mark).width, "15px",
+     "the joker svg is boxed \u2014 unboxed it renders at its intrinsic size");
+  const cards = d.querySelector("#reference .cards");
+  eq(w.getComputedStyle(cards).display, "flex", "the ladder is a flex row");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();
