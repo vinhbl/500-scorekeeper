@@ -150,34 +150,34 @@
   .cell.spec b{font-family:var(--mono);font-weight:500;opacity:.6;margin-left:6px}
 
   /* ---------- record hand ---------- */
-  .panel{background:var(--ink-2);border:1px solid var(--line-lt);border-radius:3px;padding:14px}
-  .panel.idle{opacity:.5}
+  .panel{background:var(--bone);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:14px}
+  .panel.idle{opacity:.55}
   .contract-line{font-family:var(--disp);font-size:24px;margin:0 0 14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .contract-line .val{font-family:var(--mono);font-size:13px;color:var(--gold);letter-spacing:.06em}
   .field{margin-bottom:14px}
   .label{
     font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-    color:rgba(239,233,220,.5);display:block;margin-bottom:7px;
+    color:rgba(14,26,43,.5);display:block;margin-bottom:7px;
   }
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip{
-    background:transparent;color:var(--bone);border:1px solid var(--line-lt);
+    background:transparent;color:var(--ink);border:1px solid var(--line);
     border-radius:2px;padding:11px 14px;font-size:13px;font-weight:500;
     cursor:pointer;transition:background .12s,color .12s;
   }
-  .chip:hover{background:rgba(239,233,220,.08)}
+  .chip:hover{background:rgba(14,26,43,.06)}
   .chip:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
-  .chip[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone);font-weight:600}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--bone);border-color:var(--ink);font-weight:600}
   .chip.num{font-family:var(--mono);min-width:42px;padding:11px 0;text-align:center;flex:1}
-  .tally{font-family:var(--mono);font-size:11px;color:rgba(239,233,220,.45);margin-top:8px}
-  .tally.bad{color:var(--gold)}
+  .tally{font-family:var(--mono);font-size:11px;color:rgba(14,26,43,.5);margin-top:8px}
+  .tally.bad{color:var(--red)}
   .submit{
     width:100%;padding:16px;border:0;border-radius:2px;background:var(--gold);color:var(--ink);
     font-weight:700;font-size:14px;letter-spacing:.04em;cursor:pointer;
   }
-  .submit:disabled{background:rgba(239,233,220,.14);color:rgba(239,233,220,.35);cursor:not-allowed}
-  .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
-  .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(239,233,220,.6)}
+  .submit:disabled{background:rgba(14,26,43,.10);color:rgba(14,26,43,.35);cursor:not-allowed}
+  .submit:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(14,26,43,.6)}
 
   /* ---------- log ---------- */
   .log{background:var(--bone);color:var(--ink);border-radius:3px;overflow:hidden}
@@ -344,7 +344,7 @@
   .chip[disabled]:hover{background:transparent}
   .split-row{margin-bottom:9px}
   .split-name{
-    display:block;font-size:12px;color:rgba(239,233,220,.72);
+    display:block;font-size:12px;color:rgba(14,26,43,.72);
     margin-bottom:6px;font-weight:500;
   }
 

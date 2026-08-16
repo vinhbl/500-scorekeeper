@@ -418,6 +418,41 @@ group("round reference");
   eq(w.getComputedStyle(cards).display, "flex", "the ladder is a flex row");
 }
 
+/* ---- every content section sits on bone ----
+   The record panel was the last surface on ink, which left its chips and the
+   rank ladder drawn with the wrong half of the palette.
+   jsdom drops `background:var(...)` but keeps `color:var(...)` verbatim, so
+   assert the text colour \u2014 which is what says which ground a surface is drawn
+   for anyway. */
+{
+  const { d, w } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  const ink = function(sel){ return w.getComputedStyle(d.querySelector(sel)).color === "var(--ink)"; };
+  ok(ink("#record"),    "the record panel is drawn for bone");
+  ok(ink("#reference"), "the card ranks panel is drawn for bone");
+  ok(ink(".sheet"),     "the bid table is drawn for bone");
+  ok(ink(".log"),       "the hands played log is drawn for bone");
+  ok(ink(".side"),      "the score cards are drawn for bone");
+  ok(ink(String.raw`#record .chip[aria-pressed="false"]`), "unselected chips are ink on bone");
+
+  /* selected chips invert rather than lightening */
+  const sel = d.querySelector('#record .chip[aria-pressed="true"]');
+  ok(sel, "a chip is selected");
+  eq(w.getComputedStyle(sel).color, "var(--bone)", "selected chips invert to bone on ink");
+}
+
+/* nothing inside a bone section may reach for the on-ink half of the palette */
+{
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const panelBlock = css.slice(css.indexOf("  .panel{"), css.indexOf("  /* ---------- log ---------- */"));
+  const strays = panelBlock.split("\n").filter(function(l){
+    return /239,\s*233,\s*220/.test(l) && !/aria-pressed|\.panel\{/.test(l);
+  });
+  eq(strays, [], "no on-ink colours left among the record panel's children");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();
