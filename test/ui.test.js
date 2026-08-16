@@ -7,6 +7,7 @@ const path = require("path");
 const { JSDOM } = require("jsdom");
 
 let pass = 0, fail = 0;
+const deferred = [];
 function eq(actual, expected, name){
   const a = JSON.stringify(actual), b = JSON.stringify(expected);
   if(a === b){ pass++; console.log("  ok   " + name); }
@@ -453,6 +454,48 @@ group("round reference");
   eq(strays, [], "no on-ink colours left among the record panel's children");
 }
 
+/* ================= landscape carousel dots ================= */
+group("carousel dots");
+
+function bootLandscape(){
+  const dom = new JSDOM(fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8"),
+                        { runScripts:"outside-only", url:"https://example.com/" });
+  const w = dom.window; const store = {};
+  Object.defineProperty(w, "localStorage", {value:{
+    getItem:k=>k in store?store[k]:null, setItem:(k,v)=>{store[k]=v}, removeItem:k=>{delete store[k]}
+  }, configurable:true});
+  w.matchMedia = q => ({ matches:/landscape/.test(q), media:q,
+    addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
+  w.eval(fs.readFileSync(path.join(__dirname, "..", "docs", "app.js"), "utf8"));
+  return { w, d: w.document };
+}
+
+{
+  const { d } = boot();
+  ok(d.getElementById("dots").hidden, "no dots in portrait");
+  eq(d.getElementById("dots").children.length, 0, "and none built");
+}
+{
+  const { w, d } = bootLandscape();
+  const dots = d.getElementById("dots");
+  ok(!dots.hidden, "dots appear in landscape");
+  eq(dots.children.length, 5, "one dot per slide");
+  eq([...dots.children].findIndex(b => b.className === "on"), 0,
+     "the first slide is marked before any scroll");
+
+  const wrap = d.querySelector("main.wrap");
+  Object.defineProperty(wrap, "clientWidth", { value: 852, configurable: true });
+  wrap.scrollLeft = 852 * 3;
+  wrap.dispatchEvent(new w.Event("scroll", { bubbles: true }));
+  /* the listener defers a frame; drain it synchronously rather than returning
+     a promise, which at module scope would exit before the remaining tests */
+  const raf = w.requestAnimationFrame;
+  deferred.push(function(){
+    eq([...dots.children].findIndex(b => b.className === "on"), 3,
+       "the dot follows the scroll position");
+  });
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();
@@ -465,7 +508,10 @@ group("round reference");
   ok(d.getElementById("reference").className.indexOf("idle") > -1, "reference resets for the next hand");
 }
 
-console.log("\n" + pass + " passed, " + fail + " failed\n");
-process.exit(fail ? 1 : 0);
+setTimeout(function(){
+  deferred.forEach(function(f){ f(); });
+  console.log("\n" + pass + " passed, " + fail + " failed\n");
+  process.exit(fail ? 1 : 0);
+}, 80);
 
 

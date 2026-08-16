@@ -295,27 +295,41 @@
   }
   .rk-note b{color:var(--ink);font-weight:700}
 
-  /* ---------- landscape: full-screen bid table for the table ----------
-     Phone landscape only. Guarded by max-height + coarse pointer so desktop
-     and tablet portrait keep the normal column layout. The use case is a
-     shared reference: rotate, set the phone down, everyone reads the bids.
-     Tapping still selects a contract, which carries back to portrait. */
+  /* ---------- landscape: one section per slide ----------
+     Portrait scrolls through every section; landscape pages across them, one
+     screen each, with dots for wayfinding. Phone landscape only — guarded by
+     max-height and a coarse pointer so desktop keeps the column layout.
+     Section headings are dropped here; the dots carry the wayfinding. */
   @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
     body{padding:0;overflow:hidden}
+    .mast,details.rules,.colophon{display:none!important}
 
-    .mast,#board,#banner,.head,#record,#reference,#log,details.rules,.colophon{display:none!important}
     main.wrap{
-      max-width:none;margin:0;height:100vh;height:100dvh;
-      padding:calc(7px + var(--safe-t)) calc(7px + var(--safe-r)) calc(7px + var(--safe-b)) calc(7px + var(--safe-l));
-      display:flex;
+      max-width:none;margin:0;height:100vh;height:100dvh;padding:0;
+      display:flex;flex-direction:row;
+      overflow-x:auto;overflow-y:hidden;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
     }
+    main.wrap::-webkit-scrollbar{display:none}
+
+    .slide{
+      flex:0 0 100%;width:100%;scroll-snap-align:center;scroll-snap-stop:always;
+      display:flex;flex-direction:column;justify-content:center;min-width:0;
+      padding:calc(9px + var(--safe-t)) calc(9px + var(--safe-r))
+              calc(30px + var(--safe-b)) calc(9px + var(--safe-l));
+      overflow-y:auto;
+    }
+    /* the dots carry the wayfinding, so the headings come off */
+    .slide .head{display:none}
+
+    /* the bid table keeps its across-the-table treatment */
+    .slide[data-slide="bids"]{justify-content:stretch}
     .sheet{
       flex:1;margin:0;border-radius:4px;padding:9px 11px;
       display:flex;flex-direction:column;min-height:0;
     }
-    /* flex:1 fills the leftover height; min-height:0 lets it shrink so
-       .specials (flex:none) keeps its own row instead of being pushed past
-       .sheet's overflow:hidden. Do NOT reintroduce height:100% here. */
     table.bids{flex:1;min-height:0}
     table.bids th{padding:1px 0 6px}
     table.bids th.suit{font-size:27px}
@@ -326,6 +340,23 @@
     .specials{flex:none;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
     .cell.spec{padding:12px 0;font-size:14px}
     .cell.spec b{font-size:13px;margin-left:8px}
+
+    /* the score cards sit side by side rather than stacked */
+    .board{grid-template-columns:1fr 1fr;gap:12px;margin:0}
+    .side-total{font-size:44px}
+
+    /* these two can outgrow a slide, so they scroll within it */
+    .slide[data-slide="record"],.slide[data-slide="log"]{justify-content:flex-start}
+
+    .dots{
+      position:fixed;left:0;right:0;bottom:calc(9px + var(--safe-b));
+      display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:20;
+    }
+    .dots b{
+      width:7px;height:7px;border-radius:50%;background:var(--bone);
+      opacity:.28;transition:opacity .18s,transform .18s;
+    }
+    .dots b.on{opacity:1;transform:scale(1.15)}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -419,23 +450,35 @@
 </header>
 
 <main class="wrap">
-  <section class="board" id="board"></section>
-  <div id="banner"></div>
+  <!-- Each section is wrapped so landscape can page through them. In portrait
+       the wrapper is an ordinary block and changes nothing. -->
+  <div class="slide" data-slide="score">
+    <section class="board" id="board"></section>
+    <div id="banner"></div>
+  </div>
 
-  <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
-  <section class="sheet" id="bidSheet">
-    <table class="bids" id="bidTable"></table>
-    <div class="specials" id="specials"></div>
-  </section>
+  <div class="slide" data-slide="bids">
+    <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
+    <section class="sheet" id="bidSheet">
+      <table class="bids" id="bidTable"></table>
+      <div class="specials" id="specials"></div>
+    </section>
+  </div>
 
-  <div class="head"><h2>Record a hand</h2><div class="rule"></div></div>
-  <section class="panel" id="record"></section>
+  <div class="slide" data-slide="record">
+    <div class="head"><h2>Record a hand</h2><div class="rule"></div></div>
+    <section class="panel" id="record"></section>
+  </div>
 
-  <div class="head" id="refHead"><h2>Card ranks</h2><div class="rule"></div></div>
-  <section class="panel idle" id="reference"></section>
+  <div class="slide" data-slide="ranks">
+    <div class="head" id="refHead"><h2>Card ranks</h2><div class="rule"></div></div>
+    <section class="panel idle" id="reference"></section>
+  </div>
 
-  <div class="head"><h2>Hands played</h2><div class="rule"></div><div class="note" id="handCount"></div></div>
-  <section class="log" id="log"></section>
+  <div class="slide" data-slide="log">
+    <div class="head"><h2>Hands played</h2><div class="rule"></div><div class="note" id="handCount"></div></div>
+    <section class="log" id="log"></section>
+  </div>
 
   <details class="rules">
     <summary>House rules &amp; setup</summary>
@@ -444,6 +487,8 @@
 
   <p class="colophon">SCORES ARE SAVED ON THIS DEVICE</p>
 </main>
+
+<nav class="dots" id="dots" hidden aria-label="Sections"></nav>
 
 <div class="dlg-backdrop" id="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
   <div class="dlg">

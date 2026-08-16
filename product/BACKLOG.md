@@ -8,6 +8,24 @@ Parked items, to prioritize and cut later. Committed work is tracked separately:
 
 ---
 
+## Carousel follow-ups
+
+### Swipe affordance
+Landscape pages between sections by swiping, with dots for wayfinding and no headings. Whether
+that is discoverable is untested — a first-time user may not know to swipe. Deliberately shipped
+bare to find out. If it needs help, the options are a peeking edge of the next slide, a one-time
+hint, or a button whose only job is to advance.
+
+### Section headings in landscape
+Dropped for now. A user landing on the record-a-hand slide sees chips and buttons with no label.
+Add back if the dots turn out to be insufficient.
+
+### Hands-played slide
+Included as the fifth slide with its own scroll. Was flagged as optional — cut it if it earns
+nothing in landscape.
+
+---
+
 ## Bugs
 
 ### ~~Misère bids are clipped out of the landscape bid table~~ — fixed

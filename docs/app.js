@@ -749,8 +749,59 @@
     if(e.key === "Escape" && $("dialog") && !$("dialog").hidden) closeDialog(false);
   });
 
+
+  /* ---------- landscape carousel dots ----------
+     The slides themselves are pure CSS scroll-snap; this only mirrors the
+     scroll position into the indicator. Portrait has no carousel, so the
+     dots stay hidden and the listener does nothing. */
+  function inCarousel(){
+    if(typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(orientation:landscape) and (max-height:600px) and (pointer:coarse)").matches;
+  }
+  function slideEls(){
+    return Array.prototype.slice.call(document.querySelectorAll("main.wrap .slide"));
+  }
+  function buildDots(){
+    var dots = $("dots");
+    if(!dots) return;
+    if(!inCarousel()){ dots.hidden = true; dots.innerHTML = ""; return; }
+    var n = slideEls().length;
+    if(dots.children.length !== n){
+      dots.innerHTML = new Array(n+1).join("<b></b>");
+    }
+    dots.hidden = false;
+    markDot();
+  }
+  function markDot(){
+    var dots = $("dots");
+    if(!dots || dots.hidden) return;
+    var wrap = document.querySelector("main.wrap");
+    if(!wrap) return;
+    /* before first layout clientWidth is 0 \u2014 fall back to the first slide
+       rather than leaving every dot unlit */
+    var i = wrap.clientWidth ? Math.round(wrap.scrollLeft / wrap.clientWidth) : 0;
+    var kids = dots.children;
+    for(var k=0;k<kids.length;k++) kids[k].className = (k===i ? "on" : "");
+  }
+
+  var dotTick = false;
+  document.addEventListener("scroll", function(e){
+    if(!e.target || !e.target.classList || !e.target.classList.contains("wrap")) return;
+    if(dotTick) return;
+    dotTick = true;
+    var raf = (typeof requestAnimationFrame === "function")
+      ? requestAnimationFrame : function(f){ setTimeout(f, 16); };
+    raf(function(){ dotTick = false; markDot(); });
+  }, true);
+
+  if(typeof window !== "undefined" && window.addEventListener){
+    window.addEventListener("resize", buildDots);
+    window.addEventListener("orientationchange", function(){ setTimeout(buildDots, 120); });
+  }
+
   load();
   renderAll();
+  buildDots();
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){
