@@ -43,6 +43,15 @@ misère (500) take part in the ladder rather than sitting outside it.
 Point-value ranking is a documented variation but **not the most common one** — see the toggles
 below. Left as-is deliberately; revisit if it disagrees with how the table actually plays.
 
+### `misereJokerLow` — joker low in misère
+The round reference shows the no-trump ladder for a misère bid with the **joker highest**, which
+is the default and what this app assumes. Some tables play the joker *lowest* in misère, which
+inverts the top of the ladder. Since the reference now states the order as fact on every misère
+hand, a table playing it low sees something wrong.
+
+*Implementation:* a settings toggle, default off (joker high). Only affects `rankCards()` when the
+contract is a misère — scoring is untouched.
+
 ### Two misère house-rule toggles
 The bid table currently ranks every contract by point value. Two conventions are common enough to
 be worth offering, and both slot into the existing rules panel with no new machinery.
@@ -90,7 +99,15 @@ A simple ordered display of the trump suit's ranking, plus a note that the left 
 printed suit. Should update to whatever suit was actually bid. No-trump and misère need their own
 variants (no bowers; joker's role differs by house rule — check before building).
 
-### In-round view after the bid is confirmed — SHIPPED (first pass)
+### ~~In-round view after the bid is confirmed~~ — SHIPPED, THEN REMOVED
+**Reverted August 2026.** The confirm step forced the user to name a bidder before they had any
+reason to, which is information they can give at scoring time instead. Replaced by an
+always-present **Card ranks** section below *Record a hand*, driven by the standing bid alone.
+The rank renderer built for it was kept wholesale; only the state machine was removed.
+
+*Original entry:*
+
+### In-round view after the bid is confirmed — shipped, then reverted
 A "Confirm bid" button on the bid table begins the hand; the in-round view then **replaces** the
 bid table, showing the contract, who bid it (plus partner or "alone" at five players), the point
 value, and the card-rank reference for the trump suit. "Cancel this hand" returns to the table.

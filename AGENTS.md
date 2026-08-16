@@ -125,22 +125,23 @@ goes in a new spec or an ADR.
 
 ## Current work
 
-**No milestone is active.** The Live Activity / Dynamic Island work is **deprioritised and moved to
-`product/BACKLOG.md`** — do not start M1. Its spec (`product/specs/dynamic-island-scoreboard.md`)
-and ADR 0006 remain as records; M0 is complete and its findings stand.
+**The in-round / confirm-bid mode has been removed.** It required the user to commit a bidder
+before they had reason to. Selecting a bid now populates *Record a hand* directly, and a
+**Card ranks** reference section below it shows the contract, trump suit and ladder — driven by
+the bid alone, so it costs no extra input.
 
-Reason: iOS hides an app's own Live Activity in the Dynamic Island while that app is frontmost, and
-the real requirement was seeing the score *during* play with the bid table in landscape. The island
-cannot serve that.
+Its spec (`product/specs/dynamic-island-scoreboard.md`) and ADR 0006 are unrelated and still stand.
 
-**Next work is in `product/BACKLOG.md` under "Onboarding and in-play clarity"** — all web layer, no
-native code. The misère landscape clipping bug is **fixed**; what remains under "Bugs" is that the
-landscape assertions do not measure geometry.
+**Next up: the landscape carousel.** Landscape becomes one swipeable slide per section — scores,
+bid table, record a hand, card ranks — with dot indicators and no section headings. House rules
+stays portrait-only. Until then the landscape block hides everything except the bid table, and
+`#reference` is on that hide list.
 
-**Layout changes must be verified on a device or simulator.** Two landscape bugs have now shipped
-past passing tests, and `test/landscape.test.js` checks CSS source text, not geometry — treat it as
-a lint, not a guarantee. The misère bug did not reproduce in Chrome at all; it is WebKit-only, and
-the app ships in WKWebView. Blink is not a substitute for a real device here.
+Gotchas that still bite:
+
+- **The island hides a Live Activity while its own app is frontmost** (only relevant if that work
+  is revived).
+- **`Text("\(intValue)")` inserts grouping separators** in Swift — `1000` renders as `1,000`.
 
 ## Safety
 

@@ -63,19 +63,12 @@
   var draft = blankDraft();
 
   function blankDraft(){
-    return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null, confirmed:false};
+    return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null};
   }
 
   function clearContract(){
-    draft.contract = null; draft.tricks = null; draft.defSplit = null; draft.confirmed = false;
+    draft.contract = null; draft.tricks = null; draft.defSplit = null;
     renderAll();
-  }
-
-  /* everything needed before a bid can be confirmed and the hand begun */
-  function readyToConfirm(){
-    if(!draft.contract || draft.bidder == null) return false;
-    if(S.game.seats === 5 && draft.partner == null) return false;
-    return true;
   }
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -370,15 +363,20 @@
     return h;
   }
 
-  function renderRound(){
-    var on = !!(draft.confirmed && draft.contract);
-    $("bidHead").hidden = on;
-    $("bidSheet").hidden = on;
-    $("roundHead").hidden = !on;
-    $("roundView").hidden = !on;
-    if(!on){ $("roundView").innerHTML = ""; return; }
-
+  /* The round reference. Driven by the standing bid alone — it needs the trump
+     suit and nothing else, so it costs the user no extra input to see it. */
+  function renderReference(){
+    var el = $("reference");
     var c = draft.contract;
+
+    if(!c){
+      el.className = "panel idle";
+      el.innerHTML = '<p class="contract-line" style="margin:0">Pick a contract above.</p>'+
+        '<div class="tally">The card ranks for that hand\u2019s trump suit will show here.</div>';
+      return;
+    }
+    el.className = "panel ref";
+
     var isMis = c.type === "misere";
     /* mis\u00e8re is played without trumps, so it borrows the no-trump ladder */
     var trumpKey = isMis ? "notrump" : c.suit;
@@ -390,21 +388,12 @@
           : '<span class="st '+suitColour(c.suit)+'">'+suitByKey(c.suit).glyph+'</span>');
     var lv = (!isMis) ? '<span class="lv">'+c.level+'</span>' : '';
 
-    var decl = declaringFromDraft();
-    var who = esc(S.sides[draft.bidder].name);
-    if(decl.length > 1) who += ' + ' + esc(S.sides[decl[1]].name);
-    else if(S.game.seats === 5) who += ' <span style="font-weight:400;opacity:.6">alone</span>';
-
-    $("roundView").innerHTML =
-      '<div class="round">'+
-        '<div class="left">'+
-          '<div class="contract">'+lv+st+'</div>'+
-          '<div class="kv"><div class="k">Bid by</div><div class="v">'+who+'</div>'+
-          '<div class="pts">'+c.value+' PTS</div></div>'+
-        '</div>'+
-        renderRanks(trumpKey)+
+    el.innerHTML =
+      '<div class="ref-band">'+
+        '<div class="contract">'+lv+st+'</div>'+
+        '<div class="ref-pts">'+c.value+'<span>PTS</span></div>'+
       '</div>'+
-      '<button class="round-cancel" data-role="cancelHand">Cancel this hand</button>';
+      renderRanks(trumpKey);
   }
 
   /* ---------- rendering ---------- */
@@ -496,34 +485,27 @@
     }
     el.className = "panel";
 
-    /* before the bid is confirmed: settle who bid what, then begin the hand */
-    if(!draft.confirmed){
-      var pre = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
-      pre += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
-        S.sides.map(function(sd,i){
-          return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
-        }).join("")+'</div></div>';
-      if(S.game.seats === 5 && draft.bidder != null){
-        pre += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
-          S.sides.map(function(sd,i){
-            if(i === draft.bidder) return "";
-            return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'">'+esc(sd.name)+'</button>';
-          }).join("")+
-          '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'">Alone</button>'+
-          '</div><div class="tally">Whoever held the called card \u2014 or Alone if nobody did.</div></div>';
-      }
-      var canGo = readyToConfirm();
-      pre += '<button class="submit" id="confirmBtn"'+(canGo?'':' disabled')+'>Confirm bid</button>';
-      if(!canGo) pre += '<div class="tally">Pick who bid it'+(S.game.seats===5?' and who they are playing with':'')+'.</div>';
-      el.innerHTML = pre;
-      return;
-    }
-
     var isMis = c.type === "misere";
     var n = S.game.seats;
     var decl = declaringFromDraft();
 
-    var html = "";
+    var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
+
+    html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
+      S.sides.map(function(sd,i){
+        return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
+      }).join("")+'</div></div>';
+
+    /* partner picker \u2014 5-player only */
+    if(n === 5 && draft.bidder != null){
+      html += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
+        S.sides.map(function(sd,i){
+          if(i === draft.bidder) return "";
+          return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'">'+esc(sd.name)+'</button>';
+        }).join("")+
+        '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'">Alone</button>'+
+        '</div><div class="tally">Whoever held the called card \u2014 or Alone if nobody did.</div></div>';
+    }
 
     var bidderName = draft.bidder!=null ? S.sides[draft.bidder].name : "the bidder";
     var whoLabel = decl.length > 1
@@ -658,7 +640,7 @@
     $("rules").innerHTML = html;
   }
 
-  function renderAll(){ renderBoard(); renderBidTable(); renderRound(); renderRecord(); renderLog(); renderRules(); }
+  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderReference(); renderLog(); renderRules(); }
 
   /* ---------- events ---------- */
   document.addEventListener("click", function(e){
@@ -679,7 +661,7 @@
       if(outbid(v)) return;
       draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
       draft.tricks = null; draft.defSplit = null;
-      renderBidTable(); renderRecord(); return;
+      renderBidTable(); renderRecord(); renderReference(); return;
     }
     if(b.dataset.kind === "misere"){
       var id = b.dataset.id;
@@ -692,7 +674,7 @@
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
         value: mv};
       draft.tricks = null; draft.defSplit = null;
-      renderBidTable(); renderRecord(); return;
+      renderBidTable(); renderRecord(); renderReference(); return;
     }
 
     var role = b.dataset.role;
@@ -712,12 +694,6 @@
       draft.defSplit[+b.dataset.side] = +b.dataset.i;
       renderRecord(); return;
     }
-    if(b.id === "confirmBtn"){
-      if(!readyToConfirm()) return;
-      draft.confirmed = true;
-      renderAll(); return;
-    }
-    if(role === "cancelHand"){ clearContract(); return; }
     if(b.id === "scoreBtn"){
       if(!readyToScore()) return;
       S.hands.push(buildHand());

@@ -232,58 +232,29 @@
   }
 
 
-  /* ===================== in-round view ===================== */
-  .round{background:var(--bone);color:var(--ink);border-radius:3px;overflow:hidden;
-    display:grid;grid-template-columns:1fr}
-  .round .left{
-    padding:11px 13px;border-bottom:1px solid var(--line);
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  /* ===================== round reference =====================
+     Always present. Shows the standing bid and how trump reorders the deck.
+     Needs only the contract, so it costs the user no extra input. */
+  .panel.ref{padding:0;overflow:hidden}
+  .ref-band{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:12px 14px;border-bottom:1px solid var(--line);
   }
-  .round .contract{display:flex;align-items:baseline;gap:6px;line-height:1}
-  .round .contract .lv{font-family:var(--disp);font-size:32px;line-height:.9}
-  .round .contract .st{font-size:29px;line-height:.9}
-  .round .contract .st.c-red{color:var(--red)}
-  .round .contract .st.c-blk{color:var(--black)}
-  .round .contract .st.c-nt{font-family:var(--disp);font-size:21px;color:var(--gold)}
-  .round .contract .st.c-mis{font-family:var(--disp);font-size:18px;color:var(--plum);font-style:italic}
-  .round .kv{text-align:right}
-  .round .kv .k{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(14,26,43,.42);font-weight:700}
-  .round .kv .v{font-size:14px;font-weight:700;line-height:1.25}
-  .round .kv .pts{font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:600}
-
-  .ranks{padding:11px 13px 12px}
-  .ranks .rk-head{font-size:9px;letter-spacing:.08em;text-transform:uppercase;
-    color:rgba(14,26,43,.42);font-weight:700;margin-bottom:8px}
-  .cards{display:flex;gap:4px;flex-wrap:wrap;align-items:start}
-  .rcard{
-    width:32px;border:1px solid var(--line);border-radius:2px;background:rgba(255,255,255,.45);
-    display:grid;grid-template-rows:13px 15px;align-items:center;justify-items:center;padding:5px 1px;
+  .ref-band .contract{display:flex;align-items:baseline;gap:7px;line-height:1}
+  .ref-band .contract .lv{font-family:var(--disp);font-size:32px;line-height:.9}
+  .ref-band .contract .st{font-size:29px;line-height:.9}
+  .ref-band .contract .st.c-red{color:var(--red)}
+  .ref-band .contract .st.c-blk{color:var(--black)}
+  .ref-band .contract .st.c-nt{font-family:var(--disp);font-size:21px;color:var(--gold)}
+  .ref-band .contract .st.c-mis{font-family:var(--disp);font-size:18px;color:var(--plum);font-style:italic}
+  .ref-pts{
+    font-family:var(--mono);font-size:24px;font-weight:600;color:var(--gold);
+    line-height:1;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:5px;
   }
-  .rcard .r{font-family:var(--mono);font-size:11px;font-weight:600;line-height:1;
-    font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-  .rcard .r.sm{font-size:9.5px;letter-spacing:.02em}
-  .rcard .s{font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
-  .rcard .s.c-red{color:var(--red);font-size:12.5px}
-  .rcard .s.c-blk{color:var(--black)}
-  .rcard.jk-card{background:var(--gold);border-color:var(--gold)}
-  .rcard.jk-card .r,.rcard.jk-card .s{color:var(--ink)}
-  .rcard.bower{box-shadow:inset 0 0 0 1.5px var(--gold)}
-  .rcard.tail{background:transparent;border-style:dashed;width:auto;padding:5px 8px}
-  .rcard.tail .r{grid-row:2;font-size:9.5px;letter-spacing:.09em;color:rgba(14,26,43,.45);font-weight:500}
-  .jk{width:15px;height:15px;display:block}
-  .quad{display:grid;grid-template-columns:1fr 1fr;gap:0 1px;place-items:center;line-height:1}
-  .quad span{font-size:6.5px;line-height:1.05}
-  .quad .c-red{color:var(--red);font-size:7px}
-  .quad .c-blk{color:var(--black)}
-  .rk-note{font-size:10px;color:rgba(14,26,43,.55);margin-top:9px;line-height:1.4;
-    padding-top:8px;border-top:1px solid var(--line)}
-  .rk-note b{color:var(--ink);font-weight:700}
-  .round-cancel{
-    width:100%;padding:11px;margin-top:8px;border-radius:2px;cursor:pointer;
-    background:transparent;color:rgba(239,233,220,.45);border:1px solid var(--line-lt);
-    font-family:var(--ui);font-size:12px;font-weight:600;
+  .ref-pts span{
+    font-family:var(--ui);font-size:9px;font-weight:800;letter-spacing:.14em;
+    color:rgba(14,26,43,.42);
   }
-  .round-cancel:hover{color:rgba(239,233,220,.75);border-color:rgba(239,233,220,.3)}
 
   /* ---------- landscape: full-screen bid table for the table ----------
      Phone landscape only. Guarded by max-height + coarse pointer so desktop
@@ -292,21 +263,7 @@
      Tapping still selects a contract, which carries back to portrait. */
   @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
     body{padding:0;overflow:hidden}
-    .mast,#board,#banner,.head,#record,#log,details.rules,.colophon{display:none!important}
-    /* in-round view takes the screen the same way the bid table does */
-    .round-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
-    .round-wrap .round-cancel{flex:none;margin-top:8px}
-    .round-wrap .round{
-      flex:1;grid-template-columns:118px 1fr;
-      border-radius:4px;min-height:0;
-    }
-    .round-wrap .round .left{
-      border-bottom:0;border-right:1px solid var(--line);
-      flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;
-      padding:13px 14px;
-    }
-    .round-wrap .round .kv{text-align:left}
-    .round-wrap .ranks{display:flex;flex-direction:column;justify-content:center;padding:13px 15px}
+    .mast,#board,#banner,.head,#record,#reference,#log,details.rules,.colophon{display:none!important}
     main.wrap{
       max-width:none;margin:0;height:100vh;height:100dvh;
       padding:calc(7px + var(--safe-t)) calc(7px + var(--safe-r)) calc(7px + var(--safe-b)) calc(7px + var(--safe-l));
@@ -425,17 +382,17 @@
   <section class="board" id="board"></section>
   <div id="banner"></div>
 
-  <div class="head" id="bidHead"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
+  <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
   <section class="sheet" id="bidSheet">
     <table class="bids" id="bidTable"></table>
     <div class="specials" id="specials"></div>
   </section>
 
-  <div class="head" id="roundHead" hidden><h2>Hand in progress</h2><div class="rule"></div></div>
-  <section id="roundView" class="round-wrap" hidden></section>
-
   <div class="head"><h2>Record a hand</h2><div class="rule"></div></div>
   <section class="panel" id="record"></section>
+
+  <div class="head" id="refHead"><h2>Card ranks</h2><div class="rule"></div></div>
+  <section class="panel idle" id="reference"></section>
 
   <div class="head"><h2>Hands played</h2><div class="rule"></div><div class="note" id="handCount"></div></div>
   <section class="log" id="log"></section>

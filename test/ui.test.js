@@ -64,7 +64,6 @@ group("record a hand — 2 sides");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="3"]');   // 7 hearts = 200
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 8));
   ok(!d.querySelector("#scoreBtn").disabled, "score button enables");
   click(d, "#scoreBtn");
@@ -89,7 +88,6 @@ group("seat lock");
   click(d, '[data-kind="suit"][data-level="6"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
   click(d, chip(d, "partner", 2));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 10));
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "five-player hand recorded");
@@ -109,7 +107,6 @@ group("five players — partner and alone");
   ok(d.querySelector('[data-role="partner"][data-i="-1"]'), "Alone option offered");
   ok(!d.querySelector('[data-role="partner"][data-i="0"]'), "bidder is not offered as their own partner");
   click(d, chip(d, "partner", 2));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 8));
   // three defenders: 1, 3, 4 must split 2 tricks
   ok(d.querySelector('[data-role="split"][data-side="1"]'), "defender split shown for three defenders");
@@ -129,7 +126,6 @@ group("five players — partner and alone");
   click(d, '[data-kind="suit"][data-level="9"][data-suit="4"]');
   click(d, chip(d, "bidder", 3));
   click(d, chip(d, "partner", -1));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 10));
   click(d, "#scoreBtn");
   const h = API.state().hands[0];
@@ -143,7 +139,6 @@ group("rescore prompt");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');  // 7 spades = 140
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 7));
   click(d, "#scoreBtn");
   eq(API.state().hands[0].delta, [140,30], "baseline: defenders take 3");
@@ -167,7 +162,6 @@ group("rescore prompt");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 7));
   click(d, "#scoreBtn");
   const box = d.querySelector('[data-rule="defTricks"]');
@@ -185,7 +179,6 @@ group("dry run suppresses pointless prompts");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 7));
   click(d, "#scoreBtn");
 
@@ -242,7 +235,6 @@ group("undo");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="6"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 6));
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "one hand in");
@@ -320,140 +312,102 @@ function cellVal(d, lv, si){
   const { d, API } = boot();
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");   // bid is confirmed before the hand is played
   click(d, chip(d, "tricks", 8));
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "hand recorded");
   eq(d.querySelectorAll("#bidTable .cell.dead").length, 0, "the next hand starts with a clean table");
 }
 
-/* ================= confirm bid → in-round view ================= */
-group("in-round view");
+/* ================= round reference ================= */
+group("round reference");
 
 {
   const { d } = boot();
-  ok(d.getElementById("roundView").hidden, "no in-round view before a bid");
-  ok(!d.getElementById("bidSheet").hidden, "bid table visible");
-}
-{
-  const { d } = boot();
-  click(d, cellVal(d, 8, 3));                        // 8 hearts = 300
-  ok(d.querySelector("#confirmBtn").disabled, "cannot confirm before a bidder is chosen");
-  click(d, chip(d, "bidder", 0));
-  ok(!d.querySelector("#confirmBtn").disabled, "confirm enables once the bidder is set");
-  click(d, "#confirmBtn");
-
-  ok(d.getElementById("bidSheet").hidden, "bid table is replaced");
-  ok(!d.getElementById("roundView").hidden, "in-round view takes its place");
-  eq(d.querySelector("#roundView .contract").textContent.trim(), "8\u2665", "contract shown");
-  eq(d.querySelector("#roundView .kv .v").textContent.trim(), "Us", "bidder shown");
-  ok(d.querySelector("#roundView .pts").textContent.indexOf("300") > -1, "point value shown");
-  eq(d.querySelectorAll("#record [data-role=\"bidder\"]").length, 0,
-     "the record panel drops the bidder picker once confirmed");
-  ok(d.querySelector('#record [data-role="tricks"]'), "record panel moves on to tricks");
+  ok(d.getElementById("reference"), "the reference section always exists");
+  ok(d.getElementById("reference").className.indexOf("idle") > -1, "it sits idle before a bid");
+  ok(d.getElementById("reference").textContent.indexOf("Pick a contract") > -1, "and prompts for one");
+  eq(d.querySelectorAll("#reference .rcard").length, 0, "no ladder without a trump suit");
 }
 
-/* rank reference follows the trump suit */
+/* the bid alone drives it — no confirmation, no bidder needed */
 {
   const { d } = boot();
-  click(d, cellVal(d, 8, 3));                        // hearts
-  click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
-  ok(d.querySelector(".rk-head").textContent.indexOf("Hearts") > -1, "header names the trump suit");
-  eq(d.querySelectorAll("#roundView .rcard.bower").length, 2, "both bowers marked");
-  const bowers = [...d.querySelectorAll("#roundView .rcard.bower")].map(function(c){
-    return c.querySelector(".s").textContent;
-  });
-  eq(bowers, ["\u2665","\u2666"], "right bower is the trump jack, left bower the same-colour jack");
+  click(d, cellVal(d, 8, 3));                      // 8 hearts = 300
+  ok(!d.getElementById("bidSheet").hidden, "the bid table is never replaced");
+  eq(d.querySelector("#reference .contract").textContent.trim(), "8\u2665", "contract shown");
+  ok(d.querySelector(".ref-pts").textContent.indexOf("300") > -1, "point value shown");
+  ok(d.querySelector(".rk-head").textContent.indexOf("Hearts") > -1, "ladder names the trump suit");
+  eq(d.querySelectorAll("#reference .rcard.bower").length, 2, "both bowers marked");
   eq(d.querySelector(".jk-card .r").textContent, "JKR", "joker chip labelled");
   ok(d.querySelector(".jk-card .jk"), "joker carries the drawn mark");
-  ok(d.querySelector(".rk-note").textContent.indexOf("jack of diamonds") > -1,
-     "note names the promoted jack");
+  ok(d.querySelector(".rk-note").textContent.indexOf("jack of diamonds") > -1, "note names the promoted jack");
+  eq(d.querySelectorAll("#record [data-role=\"bidder\"]").length, 2,
+     "the record panel keeps its bidder picker");
+  ok(d.querySelector('#record [data-role="tricks"]'), "and its trick buttons");
 }
+
+/* changing the bid re-renders everything below it */
 {
   const { d } = boot();
-  click(d, cellVal(d, 8, 0));                        // 8 spades
-  click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
-  const bowers = [...d.querySelectorAll("#roundView .rcard.bower")].map(function(c){
+  click(d, cellVal(d, 8, 3));                      // hearts
+  click(d, cellVal(d, 9, 0));                      // 9 spades — higher, so selectable
+  ok(d.querySelector(".rk-head").textContent.indexOf("Spades") > -1, "ladder follows the new suit");
+  const bowers = [...d.querySelectorAll("#reference .rcard.bower")].map(function(c){
     return c.querySelector(".s").textContent;
   });
   eq(bowers, ["\u2660","\u2663"], "spade trump promotes the club jack");
   eq(d.querySelector(".rcard.tail").textContent.trim(), "6 5", "black trump runs to 5 in a 43-card deck");
 }
 
-/* deck tail follows seat count */
+/* clearing the bid returns the section to idle */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, cellVal(d, 8, 3));                      // tap again to clear
+  ok(d.getElementById("reference").className.indexOf("idle") > -1, "reference goes idle again");
+  eq(d.querySelectorAll("#reference .rcard").length, 0, "ladder cleared");
+}
+
+/* deck floor follows seat count */
 {
   const { d } = boot();
   click(d, chip(d, "seats", 3));
   click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
-  eq(d.querySelector(".rcard.tail"), null, "33-card deck stops at 7 — no tail");
+  eq(d.querySelector(".rcard.tail"), null, "33-card deck stops at 7 \u2014 no tail");
 }
 {
   const { d } = boot();
   click(d, chip(d, "seats", 5));
   click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "partner", 2));
-  click(d, "#confirmBtn");
   eq(d.querySelector(".rcard.tail").textContent.trim(), "6 5 4 3 2", "53-card deck runs to 2");
-  ok(d.querySelector("#roundView .kv .v").textContent.indexOf("+") > -1, "partner shown beside the bidder");
-}
-{
-  const { d } = boot();
-  click(d, chip(d, "seats", 5));
-  click(d, cellVal(d, 9, 0));
-  click(d, chip(d, "bidder", 3));
-  click(d, chip(d, "partner", -1));
-  click(d, "#confirmBtn");
-  ok(d.querySelector("#roundView .kv .v").textContent.indexOf("alone") > -1, "a lone bidder is marked");
 }
 
-/* no-trump and misère both use the no-trump ladder */
+/* no-trump and mis\u00e8re share the no-trump ladder */
 {
   const { d } = boot();
-  click(d, cellVal(d, 8, 4));                        // 8 no-trumps
-  click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
+  click(d, cellVal(d, 8, 4));
   ok(d.querySelector(".rk-head").textContent.indexOf("no trumps") > -1, "no-trump header");
-  eq(d.querySelectorAll("#roundView .rcard.bower").length, 0, "no bowers in no-trumps");
-  eq(d.querySelectorAll("#roundView .quad").length, 8, "every rank shows all four suits");
+  eq(d.querySelectorAll("#reference .rcard.bower").length, 0, "no bowers in no-trumps");
+  eq(d.querySelectorAll("#reference .quad").length, 8, "every rank shows all four suits");
 }
 {
   const { d } = boot();
   click(d, d.querySelector('[data-id="misere"]'));
-  click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
   ok(d.querySelector(".rk-head").textContent.indexOf("no trumps") > -1,
      "mis\u00e8re borrows the no-trump ladder");
-  ok(d.querySelector("#roundView .contract").textContent.indexOf("Mis") > -1, "mis\u00e8re contract shown");
+  ok(d.querySelector("#reference .contract").textContent.indexOf("Mis") > -1, "mis\u00e8re contract shown");
 }
 
-/* leaving the view */
+/* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
-  click(d, '[data-role="cancelHand"]');
-  ok(!d.getElementById("bidSheet").hidden, "cancel returns the bid table");
-  ok(d.getElementById("roundView").hidden, "in-round view goes away");
-  eq(d.querySelectorAll("#bidTable .cell.dead").length, 0, "cancel clears the standing bid");
-  eq(API.state().hands.length, 0, "nothing recorded");
-}
-{
-  const { d, API } = boot();
-  click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "bidder", 0));
-  click(d, "#confirmBtn");
   click(d, chip(d, "tricks", 8));
   click(d, "#scoreBtn");
-  eq(API.state().hands.length, 1, "hand recorded from the confirmed flow");
+  eq(API.state().hands.length, 1, "hand recorded");
   eq(API.state().hands[0].delta, [300,20], "scored correctly");
-  ok(!d.getElementById("bidSheet").hidden, "bid table returns for the next hand");
-  ok(d.getElementById("roundView").hidden, "in-round view clears");
+  ok(d.getElementById("reference").className.indexOf("idle") > -1, "reference resets for the next hand");
 }
 
 console.log("\n" + pass + " passed, " + fail + " failed\n");
