@@ -57,6 +57,21 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
      "the bower note scales up too");
 }
 
+/* ---- the score slide stacks and fills ---- */
+{
+  ok(/\.board\{[^}]*grid-template-columns:1fr;/.test(block),
+     "score cards stack in one column rather than sitting side by side");
+  ok(/\.board\{[^}]*grid-auto-rows:1fr/.test(block),
+     "the cards divide the height evenly between them");
+  ok(/\.board\{[^}]*flex:1/.test(block), "the board fills the slide");
+  ok(/\.slide\[data-slide="score"\]\{justify-content:stretch\}/.test(block),
+     "the score slide stretches its board rather than centring it");
+  ok(!/\.board\{[^}]*grid-template-columns:1fr 1fr/.test(block),
+     "no two-column board left in landscape");
+  ok(/\.board\.seats-5 \.side-total\{font-size:30px\}/.test(block),
+     "five stacked cards use smaller type so they still fit");
+}
+
 /* recording a hand is a portrait task */
 {
   ok(/\.slide\.land\{[^}]*overflow-y:auto/.test(block), "a slide scrolls if its content is taller than the screen");

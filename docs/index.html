@@ -356,9 +356,30 @@
     .cell.spec{padding:12px 0;font-size:14px}
     .cell.spec b{font-size:13px;margin-left:8px}
 
-    /* the score cards sit side by side rather than stacked */
-    .board{grid-template-columns:1fr 1fr;gap:12px;margin:0}
-    .side-total{font-size:44px}
+    /* ---- score: cards stack and divide the slide between them ---- */
+    .slide[data-slide="score"]{justify-content:stretch}
+    .board{
+      grid-template-columns:1fr;grid-auto-rows:1fr;gap:10px;margin:0;
+      flex:1;min-height:0;
+    }
+    .side{
+      padding:16px 22px;gap:6px;border-radius:4px;
+      grid-template-columns:1fr auto;align-content:center;
+    }
+    .side.lead{box-shadow:inset 0 0 0 3px var(--gold)}
+    .side-name{font-size:26px}
+    .side-total{font-size:64px}
+    .track{height:5px}
+    .meta{font-size:12px;letter-spacing:.1em}
+
+    /* fewer rows means each card is taller, so the type can grow with them */
+    .board.seats-3 .side,.board.seats-5 .side{padding:11px 20px;gap:5px}
+    .board.seats-3 .side-name{font-size:20px}
+    .board.seats-3 .side-total{font-size:44px}
+    .board.seats-5 .side-name{font-size:16px}
+    .board.seats-5 .side-total{font-size:30px}
+    .board.seats-5 .track{height:4px}
+    .board.seats-5 .meta{display:none}
 
 
     /* ---- card ranks: the ladder fills the width, chips grow to match ---- */
