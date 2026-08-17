@@ -314,11 +314,15 @@
     }
     main.wrap::-webkit-scrollbar{display:none}
 
-    .slide{
+    /* only the three marked sections page in landscape */
+    .slide:not(.land){display:none}
+    .slide.land{
       flex:0 0 100%;width:100%;scroll-snap-align:center;scroll-snap-stop:always;
       display:flex;flex-direction:column;justify-content:center;min-width:0;
-      padding:calc(9px + var(--safe-t)) calc(9px + var(--safe-r))
-              calc(30px + var(--safe-b)) calc(9px + var(--safe-l));
+      /* extra right padding clears the dot rail; the bottom is free now that
+         the dots have moved off it */
+      padding:calc(9px + var(--safe-t)) calc(28px + var(--safe-r))
+              calc(9px + var(--safe-b)) calc(9px + var(--safe-l));
       overflow-y:auto;
     }
     /* the dots carry the wayfinding, so the headings come off */
@@ -345,8 +349,6 @@
     .board{grid-template-columns:1fr 1fr;gap:12px;margin:0}
     .side-total{font-size:44px}
 
-    /* these two can outgrow a slide, so they scroll within it */
-    .slide[data-slide="record"],.slide[data-slide="log"]{justify-content:flex-start}
 
     /* ---- card ranks: the ladder fills the width, chips grow to match ---- */
     .slide[data-slide="ranks"] .panel{flex:1;display:flex;flex-direction:column;min-height:0}
@@ -379,25 +381,12 @@
     .slide[data-slide="ranks"] .quad .c-red{font-size:11.5px}
     .slide[data-slide="ranks"] .rk-note{font-size:14px;margin-top:14px;padding-top:12px}
 
-    /* ---- record a hand: centred, everything scaled up ----
-       margin:auto rather than justify-content:center, which clips the top of
-       an overflowing flex child in WebKit */
-    .slide[data-slide="record"] .panel{margin:auto 0;width:100%;padding:18px 20px}
-    .slide[data-slide="record"] .contract-line{font-size:22px;margin-bottom:16px}
-    .slide[data-slide="record"] .contract-line .val{font-size:15px}
-    .slide[data-slide="record"] .label{font-size:12px;letter-spacing:.16em;margin-bottom:10px}
-    .slide[data-slide="record"] .field{margin-bottom:18px}
-    .slide[data-slide="record"] .chips{gap:8px}
-    .slide[data-slide="record"] .chip{font-size:17px;padding:14px 20px;border-radius:3px}
-    .slide[data-slide="record"] .chip.num{padding:14px 0;min-width:56px;text-align:center}
-    .slide[data-slide="record"] .split-name{font-size:15px;margin-bottom:8px}
-    .slide[data-slide="record"] .tally{font-size:13px;margin-top:10px}
-    .slide[data-slide="record"] .submit{font-size:17px;padding:17px;border-radius:3px}
-    .slide[data-slide="record"] .preview{font-size:14px;margin-top:13px}
 
     .dots{
-      position:fixed;left:0;right:0;bottom:calc(9px + var(--safe-b));
-      display:flex;justify-content:center;gap:7px;pointer-events:none;z-index:20;
+      position:fixed;right:calc(10px + var(--safe-r));top:50%;
+      transform:translateY(-50%);
+      display:flex;flex-direction:column;align-items:center;gap:9px;
+      pointer-events:none;z-index:20;
     }
     .dots b{
       width:7px;height:7px;border-radius:50%;background:var(--bone);
@@ -498,13 +487,17 @@
 
 <main class="wrap">
   <!-- Each section is wrapped so landscape can page through them. In portrait
-       the wrapper is an ordinary block and changes nothing. -->
-  <div class="slide" data-slide="score">
+       the wrapper is an ordinary block and changes nothing.
+       `land` marks the three sections that appear in the landscape carousel:
+       scores, bid table, card ranks. Recording a hand is a portrait task.
+       This class is the single source of truth \u2014 the CSS hides the rest and
+       app.js counts these for the dots. -->
+  <div class="slide land" data-slide="score">
     <section class="board" id="board"></section>
     <div id="banner"></div>
   </div>
 
-  <div class="slide" data-slide="bids">
+  <div class="slide land" data-slide="bids">
     <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
     <section class="sheet" id="bidSheet">
       <table class="bids" id="bidTable"></table>
@@ -512,7 +505,7 @@
     </section>
   </div>
 
-  <div class="slide" data-slide="ranks">
+  <div class="slide land" data-slide="ranks">
     <div class="head" id="refHead"><h2>Card ranks</h2><div class="rule"></div></div>
     <section class="panel idle" id="reference"></section>
   </div>

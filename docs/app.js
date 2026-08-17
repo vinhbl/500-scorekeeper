@@ -767,8 +767,10 @@
     if(typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(orientation:landscape) and (max-height:600px) and (pointer:coarse)").matches;
   }
+  /* Only sections marked `land` page in landscape \u2014 the class in the markup is
+     the single source of truth, so the dot count can never drift from the CSS. */
   function slideEls(){
-    return Array.prototype.slice.call(document.querySelectorAll("main.wrap .slide"));
+    return Array.prototype.slice.call(document.querySelectorAll("main.wrap .slide.land"));
   }
   function buildDots(){
     var dots = $("dots");

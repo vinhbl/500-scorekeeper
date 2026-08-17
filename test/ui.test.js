@@ -479,19 +479,19 @@ function bootLandscape(){
   const { w, d } = bootLandscape();
   const dots = d.getElementById("dots");
   ok(!dots.hidden, "dots appear in landscape");
-  eq(dots.children.length, 5, "one dot per slide");
+  eq(dots.children.length, 3, "one dot per landscape slide, not per section");
   eq([...dots.children].findIndex(b => b.className === "on"), 0,
      "the first slide is marked before any scroll");
 
   const wrap = d.querySelector("main.wrap");
   Object.defineProperty(wrap, "clientWidth", { value: 852, configurable: true });
-  wrap.scrollLeft = 852 * 3;
+  wrap.scrollLeft = 852 * 2;
   wrap.dispatchEvent(new w.Event("scroll", { bubbles: true }));
   /* the listener defers a frame; drain it synchronously rather than returning
      a promise, which at module scope would exit before the remaining tests */
   const raf = w.requestAnimationFrame;
   deferred.push(function(){
-    eq([...dots.children].findIndex(b => b.className === "on"), 3,
+    eq([...dots.children].findIndex(b => b.className === "on"), 2,
        "the dot follows the scroll position");
   });
 }

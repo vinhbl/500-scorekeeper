@@ -19,8 +19,10 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
 {
   ok(/main\.wrap\{[^}]*scroll-snap-type:x mandatory/.test(block),
      "the section list becomes a horizontal snap scroller");
-  ok(/\.slide\{[^}]*flex:0 0 100%/.test(block), "each slide is a full screen wide");
-  ok(/\.slide\{[^}]*scroll-snap-align:center/.test(block), "slides snap");
+  ok(/\.slide\.land\{[^}]*flex:0 0 100%/.test(block), "each landscape slide is a full screen wide");
+  ok(/\.slide\.land\{[^}]*scroll-snap-align:center/.test(block), "slides snap");
+  ok(/\.slide:not\(\.land\)\{display:none\}/.test(block),
+     "sections without the land class are cut from landscape");
   ok(/\.slide \.head\{display:none\}/.test(block), "section headings come off in landscape");
   ok(/\.mast,details\.rules,\.colophon\{display:none!important\}/.test(block),
      "masthead, house rules and colophon stay out of the carousel");
@@ -32,9 +34,12 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
 /* five slides, in the agreed order */
 {
   const body = html.slice(html.indexOf("<body>"));
-  const order = [...body.matchAll(/class="slide" data-slide="([a-z]+)"/g)].map(function(m){ return m[1]; });
-  eq(order, ["score","bids","ranks","record","log"],
-     "slide order: scores, bid table, card ranks, record a hand, hands played");
+  const all = [...body.matchAll(/class="slide(?: land)?" data-slide="([a-z]+)"/g)].map(function(m){ return m[1]; });
+  eq(all, ["score","bids","ranks","record","log"],
+     "portrait order: scores, bid table, card ranks, record a hand, hands played");
+  const land = [...body.matchAll(/class="slide land" data-slide="([a-z]+)"/g)].map(function(m){ return m[1]; });
+  eq(land, ["score","bids","ranks"],
+     "landscape carries only scores, bid table and card ranks");
 }
 
 /* ---- every slide uses its screen, not just the bid table ---- */
@@ -45,19 +50,17 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
      "the ladder stays on one line in landscape");
   ok(/\.slide\[data-slide="ranks"\] \.panel\{[^}]*flex:1/.test(block),
      "the ranks panel fills the slide");
-  ok(/\.slide\[data-slide="record"\] \.chip\{[^}]*font-size:17px/.test(block),
-     "record chips scale up for landscape");
-  ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*margin:auto 0/.test(block),
-     "the record panel centres with auto margins, which do not clip on overflow");
-  ok(!/\.slide\[data-slide="record"\][^{]*\{[^}]*justify-content:center/.test(block),
-     "record does not use justify-content:center \u2014 it clips overflowing content in WebKit");
+  ok(/\.slide\[data-slide="ranks"\] \.rk-note\{[^}]*font-size:14px/.test(block),
+     "the bower note scales up too");
 }
 
-/* the two sections that can outgrow a screen scroll within their slide */
+/* recording a hand is a portrait task */
 {
-  ok(/\.slide\{[^}]*overflow-y:auto/.test(block), "a slide scrolls if its content is taller than the screen");
-  ok(/\.slide\[data-slide="record"\],\.slide\[data-slide="log"\]\{justify-content:flex-start\}/.test(block),
-     "record and log start at the top rather than centring");
+  ok(/\.slide\.land\{[^}]*overflow-y:auto/.test(block), "a slide scrolls if its content is taller than the screen");
+  ok(!/\.slide\[data-slide="record"\]/.test(block),
+     "no landscape rules left for record \u2014 it does not appear there");
+  ok(!/\.slide\[data-slide="log"\]/.test(block),
+     "no landscape rules left for hands played");
 }
 
 /* the bid table keeps the treatment built for reading across a table */
@@ -71,7 +74,14 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
 
 /* dots */
 {
-  ok(/\.dots\{[^}]*position:fixed/.test(block), "the dot indicator is pinned above the safe area");
+  ok(/\.dots\{[^}]*position:fixed/.test(block), "the dot rail is pinned");
+  ok(/\.dots\{[^}]*flex-direction:column/.test(block), "dots stack vertically");
+  ok(/\.dots\{[^}]*right:calc\(10px \+ var\(--safe-r\)\)/.test(block), "on the right edge");
+  ok(!/\.dots\{[^}]*bottom:/.test(block), "no longer pinned to the bottom");
+  ok(/\.slide\.land\{[^}]*calc\(28px \+ var\(--safe-r\)\)/.test(block),
+     "slides pad on the right to clear the dot rail");
+  ok(/\.slide\.land\{[^}]*calc\(9px \+ var\(--safe-b\)\)/.test(block),
+     "and reclaim the bottom space the dots used to occupy");
   ok(/\.dots b\.on\{/.test(block), "there is an active dot state");
   ok(/<nav class="dots" id="dots" hidden/.test(html), "dots start hidden and are shown only in landscape");
 }
@@ -95,7 +105,8 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
   let threw = null;
   try { w2.eval(app); } catch(e){ threw = e.message; }
   ok(!threw, "app boots" + (threw ? " (" + threw + ")" : ""));
-  eq(w2.document.querySelectorAll("main.wrap .slide").length, 5, "five slides in the DOM");
+  eq(w2.document.querySelectorAll("main.wrap .slide").length, 5, "five sections in the DOM");
+  eq(w2.document.querySelectorAll("main.wrap .slide.land").length, 3, "three of them page in landscape");
   ok(w2.document.getElementById("dots").hidden, "dots hidden in portrait");
   ok(w2.document.querySelector("#bidTable").innerHTML.indexOf("440") > -1, "bid table still renders");
 }

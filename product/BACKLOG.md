@@ -20,6 +20,13 @@ hint, or a button whose only job is to advance.
 Dropped for now. A user landing on the record-a-hand slide sees chips and buttons with no label.
 Add back if the dots turn out to be insufficient.
 
+### Recording a hand is portrait-only
+Landscape carries three sections: scores, bid table, card ranks. Recording a hand and the
+hands-played log are portrait tasks, so a player scoring mid-game has to rotate. Deliberate —
+landscape is a shared viewing posture, not an input one — but worth watching in play. If rotating
+to score turns out to be a nuisance, the options are a compact record slide, or a way to score
+from the card-ranks slide.
+
 ### Hands-played slide
 Included as the fifth slide with its own scroll. Was flagged as optional — cut it if it earns
 nothing in landscape.
