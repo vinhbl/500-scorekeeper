@@ -222,6 +222,14 @@
   }
   .danger:hover{background:var(--red);color:var(--bone)}
   .seat-toggle{display:flex;gap:6px;margin-top:10px}
+  /* House rules sit on the navy ground, not in a bone panel, so their chips
+     need the on-ink half of the palette. Without this they inherit the on-bone
+     .chip rule and are invisible until selected. */
+  .seat-toggle .chip{color:var(--bone);border-color:var(--line-lt)}
+  .seat-toggle .chip:hover{background:rgba(239,233,220,.08)}
+  .seat-toggle .chip[aria-pressed="true"]{
+    background:var(--bone);color:var(--ink);border-color:var(--bone);
+  }
   .colophon{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:rgba(239,233,220,.28);margin-top:26px;text-align:center}
 
   @media (max-width:420px){
@@ -280,7 +288,10 @@
   .rcard.bower{box-shadow:inset 0 0 0 1.5px var(--gold)}
   .rcard.tail{background:transparent;border-style:dashed;width:auto;padding:5px 8px}
   .rcard.tail .r{
-    grid-row:2;font-size:9.5px;letter-spacing:.09em;color:rgba(14,26,43,.45);font-weight:500;
+    /* span both rows so the run centres in the box instead of sitting on the
+       suit line, and keep it on one line \u2014 "6 5 4 3 2" was breaking mid-run */
+    grid-row:1 / -1;align-self:center;white-space:nowrap;
+    font-size:9.5px;letter-spacing:.09em;color:rgba(14,26,43,.45);font-weight:500;
   }
   /* the joker mark is an inline svg — without an explicit box it renders at
      its intrinsic size, which is enormous */
@@ -306,9 +317,9 @@
 
     main.wrap{
       max-width:none;margin:0;height:100vh;height:100dvh;padding:0;
-      display:flex;flex-direction:row;
-      overflow-x:auto;overflow-y:hidden;
-      scroll-snap-type:x mandatory;
+      display:flex;flex-direction:column;
+      overflow-x:hidden;overflow-y:auto;
+      scroll-snap-type:y mandatory;
       -webkit-overflow-scrolling:touch;
       scrollbar-width:none;
     }
@@ -317,7 +328,7 @@
     /* only the three marked sections page in landscape */
     .slide:not(.land){display:none}
     .slide.land{
-      flex:0 0 100%;width:100%;scroll-snap-align:center;scroll-snap-stop:always;
+      flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always;
       display:flex;flex-direction:column;justify-content:center;min-width:0;
       /* extra right padding clears the dot rail; the bottom is free now that
          the dots have moved off it */
@@ -373,8 +384,8 @@
     .slide[data-slide="ranks"] .rcard .r.sm{font-size:16px}
     .slide[data-slide="ranks"] .rcard .s{font-size:23px}
     .slide[data-slide="ranks"] .rcard .s.c-red{font-size:24px}
-    .slide[data-slide="ranks"] .rcard.tail{flex:1.5 1 0;padding:9px 4px}
-    .slide[data-slide="ranks"] .rcard.tail .r{font-size:15px}
+    .slide[data-slide="ranks"] .rcard.tail{flex:2.2 1 0;padding:9px 4px}
+    .slide[data-slide="ranks"] .rcard.tail .r{font-size:15px;letter-spacing:.12em}
     .slide[data-slide="ranks"] .rcard.bower{box-shadow:inset 0 0 0 2px var(--gold)}
     .slide[data-slide="ranks"] .jk{width:30px;height:30px}
     .slide[data-slide="ranks"] .quad span{font-size:11px}

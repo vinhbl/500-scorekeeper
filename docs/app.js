@@ -788,9 +788,10 @@
     if(!dots || dots.hidden) return;
     var wrap = document.querySelector("main.wrap");
     if(!wrap) return;
-    /* before first layout clientWidth is 0 \u2014 fall back to the first slide
-       rather than leaving every dot unlit */
-    var i = wrap.clientWidth ? Math.round(wrap.scrollLeft / wrap.clientWidth) : 0;
+    /* the carousel pages vertically \u2014 the dot rail runs down the right edge.
+       Before first layout clientHeight is 0; fall back to the first slide
+       rather than leaving every dot unlit. */
+    var i = wrap.clientHeight ? Math.round(wrap.scrollTop / wrap.clientHeight) : 0;
     var kids = dots.children;
     for(var k=0;k<kids.length;k++) kids[k].className = (k===i ? "on" : "");
   }

@@ -17,8 +17,11 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
    Every section now gets a slide. The old assertions checked that sections were
    hidden; hiding them is exactly what the carousel undoes. */
 {
-  ok(/main\.wrap\{[^}]*scroll-snap-type:x mandatory/.test(block),
-     "the section list becomes a horizontal snap scroller");
+  ok(/main\.wrap\{[^}]*scroll-snap-type:y mandatory/.test(block),
+     "paging is vertical, matching the dot rail on the right edge");
+  ok(/main\.wrap\{[^}]*flex-direction:column/.test(block), "slides stack vertically");
+  ok(!/scroll-snap-type:x/.test(block), "no horizontal snapping left");
+  ok(/\.slide\.land\{[^}]*height:100%/.test(block), "each slide is a full screen tall");
   ok(/\.slide\.land\{[^}]*flex:0 0 100%/.test(block), "each landscape slide is a full screen wide");
   ok(/\.slide\.land\{[^}]*scroll-snap-align:center/.test(block), "slides snap");
   ok(/\.slide:not\(\.land\)\{display:none\}/.test(block),
@@ -82,6 +85,8 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
      "slides pad on the right to clear the dot rail");
   ok(/\.slide\.land\{[^}]*calc\(9px \+ var\(--safe-b\)\)/.test(block),
      "and reclaim the bottom space the dots used to occupy");
+  ok(/\.slide\[data-slide="ranks"\] \.rcard\.tail\{flex:2\.2/.test(block),
+     "the tail chip gets the width a five-card run needs");
   ok(/\.dots b\.on\{/.test(block), "there is an active dot state");
   ok(/<nav class="dots" id="dots" hidden/.test(html), "dots start hidden and are shown only in landscape");
 }

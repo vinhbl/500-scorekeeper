@@ -484,8 +484,8 @@ function bootLandscape(){
      "the first slide is marked before any scroll");
 
   const wrap = d.querySelector("main.wrap");
-  Object.defineProperty(wrap, "clientWidth", { value: 852, configurable: true });
-  wrap.scrollLeft = 852 * 2;
+  Object.defineProperty(wrap, "clientHeight", { value: 393, configurable: true });
+  wrap.scrollTop = 393 * 2;
   wrap.dispatchEvent(new w.Event("scroll", { bubbles: true }));
   /* the listener defers a frame; drain it synchronously rather than returning
      a promise, which at module scope would exit before the remaining tests */
@@ -548,6 +548,28 @@ const splitSides = d => new Set([...d.querySelectorAll('#record [data-role="spli
   click(d, chip(d, "partner", 2));
   eq(splitSides(d), 3, "5 players: three defenders once bidder and partner are set");
   ok(d.querySelector("#scoreBtn").disabled, "score waits for the tricks to be assigned");
+}
+
+/* ---- the tail chip centres and stays on one line ---- */
+{
+  const { d, w } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, cellVal(d, 8, 3));
+  const tail = d.querySelector("#reference .rcard.tail .r");
+  ok(tail, "the tail chip renders for a 53-card deck");
+  eq(tail.textContent, "6 5 4 3 2", "the full run is there");
+  const cs = w.getComputedStyle(tail);
+  eq(cs.whiteSpace, "nowrap", "it never breaks mid-run");
+  eq(cs.gridRow, "1 / -1", "and spans both rows so it centres rather than sitting low");
+}
+
+/* ---- the seat toggle lives on navy, so it needs on-ink colours ---- */
+{
+  const { d, w } = boot();
+  const seat = d.querySelector('.seat-toggle .chip[aria-pressed="false"]');
+  ok(seat, "an unselected seat option exists");
+  eq(w.getComputedStyle(seat).color, "var(--bone)",
+     "unselected seat options are legible on the navy ground");
 }
 
 /* a full hand still records, with no confirm step in the way */
