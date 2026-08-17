@@ -33,8 +33,24 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
 {
   const body = html.slice(html.indexOf("<body>"));
   const order = [...body.matchAll(/class="slide" data-slide="([a-z]+)"/g)].map(function(m){ return m[1]; });
-  eq(order, ["score","bids","record","ranks","log"],
-     "slide order: scores, bid table, record a hand, card ranks, hands played");
+  eq(order, ["score","bids","ranks","record","log"],
+     "slide order: scores, bid table, card ranks, record a hand, hands played");
+}
+
+/* ---- every slide uses its screen, not just the bid table ---- */
+{
+  ok(/\.slide\[data-slide="ranks"\] \.rcard\{[^}]*flex:1 1 0/.test(block),
+     "rank chips divide the row instead of sitting at a fixed width");
+  ok(/\.slide\[data-slide="ranks"\] \.cards\{[^}]*flex-wrap:nowrap/.test(block),
+     "the ladder stays on one line in landscape");
+  ok(/\.slide\[data-slide="ranks"\] \.panel\{[^}]*flex:1/.test(block),
+     "the ranks panel fills the slide");
+  ok(/\.slide\[data-slide="record"\] \.chip\{[^}]*font-size:17px/.test(block),
+     "record chips scale up for landscape");
+  ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*margin:auto 0/.test(block),
+     "the record panel centres with auto margins, which do not clip on overflow");
+  ok(!/\.slide\[data-slide="record"\][^{]*\{[^}]*justify-content:center/.test(block),
+     "record does not use justify-content:center \u2014 it clips overflowing content in WebKit");
 }
 
 /* the two sections that can outgrow a screen scroll within their slide */
