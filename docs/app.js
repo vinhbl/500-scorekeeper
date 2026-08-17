@@ -466,6 +466,15 @@
     if(note) note.textContent = draft.contract ? draft.contract.label + " stands" : "Avondale";
   }
 
+  /* True once the bidder's side is settled. Until then "defender" has no
+     meaning \u2014 declaringFromDraft() returns an empty array, which would make
+     every side look like a defender. */
+  function declaringKnown(){
+    if(draft.bidder == null) return false;
+    if(S.game.seats === 5 && draft.partner == null) return false;
+    return true;
+  }
+
   function declaringFromDraft(){
     if(draft.bidder == null) return [];
     if(S.game.seats !== 5) return [draft.bidder];
@@ -523,7 +532,7 @@
     var defenders = [];
     S.sides.forEach(function(_,i){ if(decl.indexOf(i) < 0) defenders.push(i); });
 
-    if(defenders.length > 1 && draft.tricks!=null && scoringDef){
+    if(declaringKnown() && defenders.length > 1 && draft.tricks!=null && scoringDef){
       var rem = 10 - draft.tricks, used = 0;
       defenders.forEach(function(i){ used += (draft.defSplit && draft.defSplit[i])||0; });
       html += '<div class="field"><span class="label">Tricks won by each defender</span>';
@@ -575,8 +584,8 @@
   }
 
   function readyToScore(){
-    if(!draft.contract || draft.bidder==null || draft.tricks==null) return false;
-    if(S.game.seats === 5 && draft.partner == null) return false;
+    if(!draft.contract || draft.tricks==null) return false;
+    if(!declaringKnown()) return false;
     var decl = declaringFromDraft();
     var defenders = [];
     S.sides.forEach(function(_,i){ if(decl.indexOf(i) < 0) defenders.push(i); });

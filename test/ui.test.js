@@ -496,6 +496,60 @@ function bootLandscape(){
   });
 }
 
+/* ================= the defender split waits for a declarer ================= */
+group("split appears only once the bidder's side is known");
+
+const splitSides = d => new Set([...d.querySelectorAll('#record [data-role="split"]')]
+  .map(b => b.dataset.side)).size;
+
+/* picking tricks before a bidder used to render a split between both sides,
+   which is a question with no meaning yet */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "tricks", 8));
+  eq(splitSides(d), 0, "no defender split before a bidder is chosen");
+  eq([...d.querySelectorAll("#record .label")].map(l => l.textContent),
+     ["Who bid it", "Tricks won by the bidder"],
+     "only the two inputs are shown");
+  ok(d.querySelector("#scoreBtn").disabled, "score stays disabled");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "tricks", 8));
+  click(d, chip(d, "bidder", 0));
+  eq(splitSides(d), 0, "2 sides never needs a split \u2014 one defender");
+  ok(!d.querySelector("#scoreBtn").disabled, "score enables once both inputs are given");
+  eq(d.querySelector('[data-role="tricks"][data-i="8"]').getAttribute("aria-pressed"), "true",
+     "the trick count survives choosing the bidder afterwards");
+}
+
+/* 3 players: split appears with the bidder, not before */
+{
+  const { d } = boot();
+  click(d, chip(d, "seats", 3));
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "tricks", 8));
+  eq(splitSides(d), 0, "3 players: nothing before a bidder");
+  click(d, chip(d, "bidder", 0));
+  eq(splitSides(d), 2, "3 players: two defenders once the bidder is known");
+}
+
+/* 5 players: the partner completes the declaring side, so the split waits for it */
+{
+  const { d } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "tricks", 8));
+  eq(splitSides(d), 0, "5 players: nothing before a bidder");
+  click(d, chip(d, "bidder", 0));
+  eq(splitSides(d), 0, "5 players: still nothing while the partner is unknown");
+  click(d, chip(d, "partner", 2));
+  eq(splitSides(d), 3, "5 players: three defenders once bidder and partner are set");
+  ok(d.querySelector("#scoreBtn").disabled, "score waits for the tricks to be assigned");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();
