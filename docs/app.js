@@ -507,9 +507,8 @@
 
     var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
 
-    /* Named regions. In portrait they are display:contents and change nothing;
-       in landscape they become grid areas. Split gets its own column when it
-       exists, which is what keeps the five-player case off the edges. */
+    /* Two named columns. In portrait they are display:contents and change
+       nothing; in landscape they become the left and right halves. */
     html += '<div class="rec-col rec-who">';
 
     html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
@@ -541,7 +540,6 @@
     html += '</div>';
 
     /* defender split — needed when more than one defender exists and defenders score */
-    var hasSplit = false;
     var scoringDef = isMis ? S.rules.misereDef : S.rules.defTricks;
     var defenders = [];
     S.sides.forEach(function(_,i){ if(decl.indexOf(i) < 0) defenders.push(i); });
@@ -549,18 +547,16 @@
     if(declaringKnown() && defenders.length > 1 && draft.tricks!=null && scoringDef){
       var rem = 10 - draft.tricks, used = 0;
       defenders.forEach(function(i){ used += (draft.defSplit && draft.defSplit[i])||0; });
-      hasSplit = true;
-      html += '<div class="rec-col rec-split"><div class="field"><span class="label">Defender tricks</span>'+
+      html += '<div class="field"><span class="label">Defender tricks</span>'+
         '<div class="remain'+(used===rem?' done':'')+'"><b>'+(rem-used)+'</b> of '+rem+' left to assign</div>';
       defenders.forEach(function(i){
         html += stepperRow(esc(S.sides[i].name), (draft.defSplit && draft.defSplit[i]) || 0,
                            "split", i, 0, rem, used >= rem);
       });
-      html += '</div></div>';
+      html += '</div>';
     }
 
     var ready = readyToScore();
-    html += '<div class="rec-col rec-act">';
     html += '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
     if(ready){
       var d = scoreHand(buildHand());
@@ -569,7 +565,6 @@
       }).join('&nbsp;&nbsp;\u00b7&nbsp;&nbsp;')+'</div>';
     }
     html += '</div>';
-    el.className = "panel" + (hasSplit ? " has-split" : "");
     el.innerHTML = html;
   }
 
