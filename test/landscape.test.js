@@ -77,13 +77,17 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
 {
   ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*grid-template-columns:1fr 1fr/.test(block),
      "record splits into two columns in landscape");
+  ok(/\.panel\.has-split\{[^}]*grid-template-columns:1fr 1fr 1\.05fr/.test(block),
+     "the defender split gets a third column instead of stacking");
+  ok(/"who  num  split"/.test(block), "split occupies its own grid area");
+  ok(/\.panel:not\(\.has-split\) \.step\{width:44px/.test(block),
+     "the sparse case scales up to fill the slide");
+  ok(/\.panel\.has-split \.step\{width:31px/.test(block),
+     "the dense case stays compact");
   ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*align-content:center/.test(block),
      "its contents centre rather than stretching");
-  ok(/\.slide\[data-slide="record"\] \.step\{width:32px;height:32px\}/.test(block),
-     "steppers stay compact so four rows fit without scrolling");
-  ok(/\.slide\[data-slide="record"\] \.rec-who\{grid-column:1\}/.test(block) &&
-     /\.slide\[data-slide="record"\] \.rec-num\{grid-column:2\}/.test(block),
-     "columns are placed by name, not by counting fields");
+  ok(/\.rec-who\{grid-area:who\}/.test(block) && /\.rec-split\{grid-area:split\}/.test(block),
+     "regions are placed by name, not by counting fields");
   ok(!/\.slide\[data-slide="record"\][^{]*nth-of-type/.test(block),
      "no positional placement \u2014 it breaks when the partner field appears");
   ok(/\.rec-col\{display:contents\}/.test(css),

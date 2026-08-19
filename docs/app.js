@@ -507,8 +507,9 @@
 
     var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
 
-    /* Two named columns. In portrait they are display:contents and change
-       nothing; in landscape they become the left and right halves. */
+    /* Named regions. In portrait they are display:contents and change nothing;
+       in landscape they become grid areas. Split gets its own column when it
+       exists, which is what keeps the five-player case off the edges. */
     html += '<div class="rec-col rec-who">';
 
     html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
@@ -516,11 +517,12 @@
         return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
       }).join("")+'</div></div>';
 
-    /* partner picker \u2014 5-player only */
-    if(n === 5 && draft.bidder != null){
+    /* Partner picker \u2014 five players only, and always visible. Hiding it until a
+       bidder was chosen made the panel jump and hid half the question. */
+    if(n === 5){
       html += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
         S.sides.map(function(sd,i){
-          if(i === draft.bidder) return "";
+          if(draft.bidder != null && i === draft.bidder) return "";
           return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'">'+esc(sd.name)+'</button>';
         }).join("")+
         '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'">Alone</button>'+
@@ -539,6 +541,7 @@
     html += '</div>';
 
     /* defender split — needed when more than one defender exists and defenders score */
+    var hasSplit = false;
     var scoringDef = isMis ? S.rules.misereDef : S.rules.defTricks;
     var defenders = [];
     S.sides.forEach(function(_,i){ if(decl.indexOf(i) < 0) defenders.push(i); });
@@ -546,16 +549,18 @@
     if(declaringKnown() && defenders.length > 1 && draft.tricks!=null && scoringDef){
       var rem = 10 - draft.tricks, used = 0;
       defenders.forEach(function(i){ used += (draft.defSplit && draft.defSplit[i])||0; });
-      html += '<div class="field"><span class="label">Defender tricks</span>'+
+      hasSplit = true;
+      html += '<div class="rec-col rec-split"><div class="field"><span class="label">Defender tricks</span>'+
         '<div class="remain'+(used===rem?' done':'')+'"><b>'+(rem-used)+'</b> of '+rem+' left to assign</div>';
       defenders.forEach(function(i){
         html += stepperRow(esc(S.sides[i].name), (draft.defSplit && draft.defSplit[i]) || 0,
                            "split", i, 0, rem, used >= rem);
       });
-      html += '</div>';
+      html += '</div></div>';
     }
 
     var ready = readyToScore();
+    html += '<div class="rec-col rec-act">';
     html += '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
     if(ready){
       var d = scoreHand(buildHand());
@@ -564,6 +569,7 @@
       }).join('&nbsp;&nbsp;\u00b7&nbsp;&nbsp;')+'</div>';
     }
     html += '</div>';
+    el.className = "panel" + (hasSplit ? " has-split" : "");
     el.innerHTML = html;
   }
 
