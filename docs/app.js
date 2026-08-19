@@ -71,6 +71,13 @@
     renderAll();
   }
 
+  /* The likeliest outcome is that the contract was made exactly, so the count
+     starts there and only needs touching when it wasn't. Mis\u00e8re starts at zero,
+     which is its equivalent of "made it". */
+  function seedTricks(c){
+    return c.type === "misere" ? 0 : c.level;
+  }
+
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
   function $(id){ return document.getElementById(id); }
   function esc(s){
@@ -500,6 +507,10 @@
 
     var html = '<p class="contract-line">'+c.label+'<span class="val">'+c.value+' PTS</span></p>';
 
+    /* Two named columns. In portrait they are display:contents and change
+       nothing; in landscape they become the left and right halves. */
+    html += '<div class="rec-col rec-who">';
+
     html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
       S.sides.map(function(sd,i){
         return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
@@ -516,14 +527,14 @@
         '</div><div class="tally">Whoever held the called card \u2014 or Alone if nobody did.</div></div>';
     }
 
+    html += '</div><div class="rec-col rec-num">';
+
     var bidderName = draft.bidder!=null ? S.sides[draft.bidder].name : "the bidder";
     var whoLabel = decl.length > 1
       ? esc(bidderName) + " + " + esc(S.sides[decl[1]].name)
       : esc(bidderName);
-    html += '<div class="field"><span class="label">Tricks won by '+whoLabel+'</span><div class="chips">'+
-      Array.from({length:11},function(_,k){
-        return '<button class="chip num" data-role="tricks" data-i="'+k+'" aria-pressed="'+(draft.tricks===k)+'">'+k+'</button>';
-      }).join("")+'</div>';
+    html += '<div class="field"><span class="label">Tricks won</span>'+
+      stepperRow(whoLabel, draft.tricks, "tricks", null, 0, 10);
     if(isMis) html += '<div class="tally">Mis\u00e8re is made only on zero tricks.</div>';
     html += '</div>';
 
@@ -535,15 +546,13 @@
     if(declaringKnown() && defenders.length > 1 && draft.tricks!=null && scoringDef){
       var rem = 10 - draft.tricks, used = 0;
       defenders.forEach(function(i){ used += (draft.defSplit && draft.defSplit[i])||0; });
-      html += '<div class="field"><span class="label">Tricks won by each defender</span>';
+      html += '<div class="field"><span class="label">Defender tricks</span>'+
+        '<div class="remain'+(used===rem?' done':'')+'"><b>'+(rem-used)+'</b> of '+rem+' left to assign</div>';
       defenders.forEach(function(i){
-        html += '<div class="split-row"><span class="split-name">'+esc(S.sides[i].name)+'</span><div class="chips">'+
-          Array.from({length:rem+1},function(_,k){
-            var on = draft.defSplit && draft.defSplit[i]===k;
-            return '<button class="chip num" data-role="split" data-side="'+i+'" data-i="'+k+'" aria-pressed="'+(!!on)+'">'+k+'</button>';
-          }).join("")+'</div></div>';
+        html += stepperRow(esc(S.sides[i].name), (draft.defSplit && draft.defSplit[i]) || 0,
+                           "split", i, 0, rem, used >= rem);
       });
-      html += '<div class="tally'+(used!==rem?' bad':'')+'">'+used+' of '+rem+' defending tricks assigned</div></div>';
+      html += '</div>';
     }
 
     var ready = readyToScore();
@@ -554,7 +563,23 @@
         return esc(sd.name)+' '+(d[i]>=0?'+':'')+d[i];
       }).join('&nbsp;&nbsp;\u00b7&nbsp;&nbsp;')+'</div>';
     }
+    html += '</div>';
     el.innerHTML = html;
+  }
+
+  /* name on the left, minus / value / plus on the right \u2014 one row per number,
+     so the control is the same shape whether there are two players or five */
+  function stepperRow(name, value, role, side, min, max, plusOff){
+    var sideAttr = side==null ? "" : ' data-side="'+side+'"';
+    return '<div class="srow">'+
+      '<span class="srow-name">'+name+'</span>'+
+      '<span class="stepper">'+
+        '<button class="step" data-role="'+role+'-dec"'+sideAttr+
+          (value<=min?' disabled':'')+' aria-label="one fewer">\u2212</button>'+
+        '<span class="step-val">'+value+'</span>'+
+        '<button class="step" data-role="'+role+'-inc"'+sideAttr+
+          ((value>=max||plusOff)?' disabled':'')+' aria-label="one more">+</button>'+
+      '</span></div>';
   }
 
   function buildHand(){
@@ -669,7 +694,7 @@
       }
       if(outbid(v)) return;
       draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
-      draft.tricks = null; draft.defSplit = null;
+      draft.tricks = seedTricks(draft.contract); draft.defSplit = null;
       renderBidTable(); renderRecord(); renderReference(); return;
     }
     if(b.dataset.kind === "misere"){
@@ -682,7 +707,7 @@
       draft.contract = {type:"misere", id:id,
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
         value: mv};
-      draft.tricks = null; draft.defSplit = null;
+      draft.tricks = seedTricks(draft.contract); draft.defSplit = null;
       renderBidTable(); renderRecord(); renderReference(); return;
     }
 
@@ -697,10 +722,23 @@
       draft.partner = (draft.partner === pi) ? null : pi;
       draft.defSplit = null; renderRecord(); return;
     }
-    if(role === "tricks"){ draft.tricks = +b.dataset.i; draft.defSplit = null; renderRecord(); return; }
-    if(role === "split"){
+    if(role === "tricks-inc" || role === "tricks-dec"){
+      var step = role === "tricks-inc" ? 1 : -1;
+      draft.tricks = Math.max(0, Math.min(10, (draft.tricks||0) + step));
+      draft.defSplit = null;
+      renderRecord(); return;
+    }
+    if(role === "split-inc" || role === "split-dec"){
+      var si = +b.dataset.side;
       draft.defSplit = draft.defSplit || {};
-      draft.defSplit[+b.dataset.side] = +b.dataset.i;
+      var cur = draft.defSplit[si] || 0;
+      if(role === "split-inc"){
+        var decl2 = declaringFromDraft(), left = 10 - draft.tricks;
+        S.sides.forEach(function(_,j){ if(decl2.indexOf(j) < 0 && j !== si) left -= (draft.defSplit[j]||0); });
+        if(cur < left) draft.defSplit[si] = cur + 1;
+      } else {
+        draft.defSplit[si] = Math.max(0, cur - 1);
+      }
       renderRecord(); return;
     }
     if(b.id === "scoreBtn"){

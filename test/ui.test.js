@@ -44,6 +44,21 @@ function click(d, sel){
 function chip(d, role, i){
   return d.querySelector('[data-role="'+role+'"][data-i="'+i+'"]');
 }
+/* tricks are a stepper now \u2014 seeded at the contract level, stepped to a target */
+function setTricks(d, target){
+  for (let guard = 0; guard < 22; guard++){
+    const v = +d.querySelector(".srow .step-val").textContent;
+    if (v === target) return;
+    const btn = d.querySelector(v < target ? '[data-role="tricks-inc"]' : '[data-role="tricks-dec"]');
+    if (!btn || btn.disabled) return;
+    click(d, btn);
+  }
+}
+function tricksNow(d){ return +d.querySelector(".srow .step-val").textContent; }
+function giveTrick(d, side){ click(d, d.querySelector('[data-role="split-inc"][data-side="'+side+'"]')); }
+function splitSides(d){
+  return new Set([...d.querySelectorAll('#record [data-role="split-inc"]')].map(b => b.dataset.side)).size;
+}
 
 /* ================= boots clean ================= */
 group("cold start");
@@ -65,7 +80,7 @@ group("record a hand — 2 sides");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="3"]');   // 7 hearts = 200
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   ok(!d.querySelector("#scoreBtn").disabled, "score button enables");
   click(d, "#scoreBtn");
   const S = API.state();
@@ -89,7 +104,7 @@ group("seat lock");
   click(d, '[data-kind="suit"][data-level="6"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
   click(d, chip(d, "partner", 2));
-  click(d, chip(d, "tricks", 10));
+  setTricks(d, 10);
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "five-player hand recorded");
   ok(chip(d, "seats", 3).disabled, "seat toggle locks once a hand exists");
@@ -108,12 +123,12 @@ group("five players — partner and alone");
   ok(d.querySelector('[data-role="partner"][data-i="-1"]'), "Alone option offered");
   ok(!d.querySelector('[data-role="partner"][data-i="0"]'), "bidder is not offered as their own partner");
   click(d, chip(d, "partner", 2));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   // three defenders: 1, 3, 4 must split 2 tricks
-  ok(d.querySelector('[data-role="split"][data-side="1"]'), "defender split shown for three defenders");
-  click(d, d.querySelector('[data-role="split"][data-side="1"][data-i="1"]'));
-  click(d, d.querySelector('[data-role="split"][data-side="3"][data-i="1"]'));
-  click(d, d.querySelector('[data-role="split"][data-side="4"][data-i="0"]'));
+  ok(d.querySelector('[data-role="split-inc"][data-side="1"]'), "defender split shown for three defenders");
+  giveTrick(d, 1);
+  giveTrick(d, 3);
+  /* zero */
   ok(!d.querySelector("#scoreBtn").disabled, "score enables once every trick is assigned");
   click(d, "#scoreBtn");
   const h = API.state().hands[0];
@@ -127,7 +142,7 @@ group("five players — partner and alone");
   click(d, '[data-kind="suit"][data-level="9"][data-suit="4"]');
   click(d, chip(d, "bidder", 3));
   click(d, chip(d, "partner", -1));
-  click(d, chip(d, "tricks", 10));
+  setTricks(d, 10);
   click(d, "#scoreBtn");
   const h = API.state().hands[0];
   eq(h.declaring, [3], "alone records a single declaring seat");
@@ -140,7 +155,7 @@ group("rescore prompt");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');  // 7 spades = 140
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 7));
+  setTricks(d, 7);
   click(d, "#scoreBtn");
   eq(API.state().hands[0].delta, [140,30], "baseline: defenders take 3");
 
@@ -163,7 +178,7 @@ group("rescore prompt");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 7));
+  setTricks(d, 7);
   click(d, "#scoreBtn");
   const box = d.querySelector('[data-rule="defTricks"]');
   box.checked = false;
@@ -180,7 +195,7 @@ group("dry run suppresses pointless prompts");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="7"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 7));
+  setTricks(d, 7);
   click(d, "#scoreBtn");
 
   // no misère was bid, so flipping misereDef cannot change any delta
@@ -236,7 +251,7 @@ group("undo");
   const { d, API } = boot();
   click(d, '[data-kind="suit"][data-level="6"][data-suit="0"]');
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 6));
+  setTricks(d, 6);
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "one hand in");
   click(d, '[data-role="undo"]');
@@ -313,7 +328,7 @@ function cellVal(d, lv, si){
   const { d, API } = boot();
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "hand recorded");
   eq(d.querySelectorAll("#bidTable .cell.dead").length, 0, "the next hand starts with a clean table");
@@ -344,7 +359,7 @@ group("round reference");
   ok(d.querySelector(".rk-note").textContent.indexOf("jack of diamonds") > -1, "note names the promoted jack");
   eq(d.querySelectorAll("#record [data-role=\"bidder\"]").length, 2,
      "the record panel keeps its bidder picker");
-  ok(d.querySelector('#record [data-role="tricks"]'), "and its trick buttons");
+  ok(d.querySelector('#record .srow .step-val'), "and its trick stepper");
 }
 
 /* changing the bid re-renders everything below it */
@@ -479,7 +494,7 @@ function bootLandscape(){
   const { w, d } = bootLandscape();
   const dots = d.getElementById("dots");
   ok(!dots.hidden, "dots appear in landscape");
-  eq(dots.children.length, 3, "one dot per landscape slide, not per section");
+  eq(dots.children.length, 4, "one dot per landscape slide, not per section");
   eq([...dots.children].findIndex(b => b.className === "on"), 0,
      "the first slide is marked before any scroll");
 
@@ -499,30 +514,26 @@ function bootLandscape(){
 /* ================= the defender split waits for a declarer ================= */
 group("split appears only once the bidder's side is known");
 
-const splitSides = d => new Set([...d.querySelectorAll('#record [data-role="split"]')]
-  .map(b => b.dataset.side)).size;
-
 /* picking tricks before a bidder used to render a split between both sides,
    which is a question with no meaning yet */
 {
   const { d } = boot();
   click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   eq(splitSides(d), 0, "no defender split before a bidder is chosen");
   eq([...d.querySelectorAll("#record .label")].map(l => l.textContent),
-     ["Who bid it", "Tricks won by the bidder"],
+     ["Who bid it", "Tricks won"],
      "only the two inputs are shown");
   ok(d.querySelector("#scoreBtn").disabled, "score stays disabled");
 }
 {
   const { d } = boot();
   click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   click(d, chip(d, "bidder", 0));
   eq(splitSides(d), 0, "2 sides never needs a split \u2014 one defender");
   ok(!d.querySelector("#scoreBtn").disabled, "score enables once both inputs are given");
-  eq(d.querySelector('[data-role="tricks"][data-i="8"]').getAttribute("aria-pressed"), "true",
-     "the trick count survives choosing the bidder afterwards");
+  eq(tricksNow(d), 8, "the trick count survives choosing the bidder afterwards");
 }
 
 /* 3 players: split appears with the bidder, not before */
@@ -530,7 +541,7 @@ const splitSides = d => new Set([...d.querySelectorAll('#record [data-role="spli
   const { d } = boot();
   click(d, chip(d, "seats", 3));
   click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   eq(splitSides(d), 0, "3 players: nothing before a bidder");
   click(d, chip(d, "bidder", 0));
   eq(splitSides(d), 2, "3 players: two defenders once the bidder is known");
@@ -541,7 +552,7 @@ const splitSides = d => new Set([...d.querySelectorAll('#record [data-role="spli
   const { d } = boot();
   click(d, chip(d, "seats", 5));
   click(d, cellVal(d, 8, 3));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   eq(splitSides(d), 0, "5 players: nothing before a bidder");
   click(d, chip(d, "bidder", 0));
   eq(splitSides(d), 0, "5 players: still nothing while the partner is unknown");
@@ -577,7 +588,7 @@ const splitSides = d => new Set([...d.querySelectorAll('#record [data-role="spli
   const { d, API } = boot();
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 0));
-  click(d, chip(d, "tricks", 8));
+  setTricks(d, 8);
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "hand recorded");
   eq(API.state().hands[0].delta, [300,20], "scored correctly");

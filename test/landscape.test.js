@@ -2,6 +2,7 @@ const fs=require("fs"),path=require("path");
 const {JSDOM}=require("jsdom");
 const html=fs.readFileSync(path.join(__dirname,"..","docs","index.html"),"utf8");
 const app =fs.readFileSync(path.join(__dirname,"..","docs","app.js"),"utf8");
+const css =html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
 let pass=0,fail=0;
 function ok(c,n){c?(pass++,console.log("  ok   "+n)):(fail++,console.log("  FAIL "+n));}
 function eq(a,b,n){
@@ -41,8 +42,8 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
   eq(all, ["score","bids","ranks","record","log"],
      "portrait order: scores, bid table, card ranks, record a hand, hands played");
   const land = [...body.matchAll(/class="slide land" data-slide="([a-z]+)"/g)].map(function(m){ return m[1]; });
-  eq(land, ["score","bids","ranks"],
-     "landscape carries only scores, bid table and card ranks");
+  eq(land, ["score","bids","ranks","record"],
+     "landscape carries scores, bid table, card ranks and record a hand");
 }
 
 /* ---- every slide uses its screen, not just the bid table ---- */
@@ -72,13 +73,23 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
      "five stacked cards use smaller type so they still fit");
 }
 
-/* recording a hand is a portrait task */
+/* record a hand must fit one slide \u2014 that is the whole constraint */
 {
-  ok(/\.slide\.land\{[^}]*overflow-y:auto/.test(block), "a slide scrolls if its content is taller than the screen");
-  ok(!/\.slide\[data-slide="record"\]/.test(block),
-     "no landscape rules left for record \u2014 it does not appear there");
+  ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*grid-template-columns:1fr 1fr/.test(block),
+     "record splits into two columns in landscape");
+  ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*align-content:center/.test(block),
+     "its contents centre rather than stretching");
+  ok(/\.slide\[data-slide="record"\] \.step\{width:32px;height:32px\}/.test(block),
+     "steppers stay compact so four rows fit without scrolling");
+  ok(/\.slide\[data-slide="record"\] \.rec-who\{grid-column:1\}/.test(block) &&
+     /\.slide\[data-slide="record"\] \.rec-num\{grid-column:2\}/.test(block),
+     "columns are placed by name, not by counting fields");
+  ok(!/\.slide\[data-slide="record"\][^{]*nth-of-type/.test(block),
+     "no positional placement \u2014 it breaks when the partner field appears");
+  ok(/\.rec-col\{display:contents\}/.test(css),
+     "the column wrappers are layout-neutral in portrait");
   ok(!/\.slide\[data-slide="log"\]/.test(block),
-     "no landscape rules left for hands played");
+     "hands played stays portrait-only");
 }
 
 /* the bid table keeps the treatment built for reading across a table */
@@ -88,6 +99,15 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
      "table.bids must not set height:100% \u2014 it clips .specials in WebKit");
   ok(/\.cell\{font-size:23px/.test(block), "cells enlarged for across-the-table reading");
   ok(!/#specials[^{]*display:none/.test(block), "mis\u00e8re bids stay visible");
+}
+
+/* the stepper replaced eleven chips per number */
+{
+  ok(/\.srow\{/.test(css), "stepper rows exist");
+  ok(/\.step\{[^}]*width:34px;height:34px/.test(css),
+     "34px targets in portrait \u2014 matched to the compact tap-to-assign sizing");
+  ok(/\.step-val\{[^}]*font-size:20px/.test(css), "and a 20px value");
+  ok(/\.remain\{/.test(css), "a running remainder replaces the assigned-of tally");
 }
 
 /* dots */
@@ -126,7 +146,7 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
   try { w2.eval(app); } catch(e){ threw = e.message; }
   ok(!threw, "app boots" + (threw ? " (" + threw + ")" : ""));
   eq(w2.document.querySelectorAll("main.wrap .slide").length, 5, "five sections in the DOM");
-  eq(w2.document.querySelectorAll("main.wrap .slide.land").length, 3, "three of them page in landscape");
+  eq(w2.document.querySelectorAll("main.wrap .slide.land").length, 4, "four of them page in landscape");
   ok(w2.document.getElementById("dots").hidden, "dots hidden in portrait");
   ok(w2.document.querySelector("#bidTable").innerHTML.indexOf("440") > -1, "bid table still renders");
 }
