@@ -159,7 +159,7 @@ eq(m.sides.every(s=>!!s.id), true, "assigns stable side ids");
 eq(m.hands.map(h=>h.declaring), [[0],[1]], "backfills declaring as the bidder alone");
 eq(m.hands.map(h=>h.trickSplit), [[0,3],[4,0]], "renames defSplit to trickSplit");
 eq(m.hands.map(h=>h.delta), [[140,30],[40,-240]], "preserves deltas exactly as scored");
-eq(m.rules.defShare, true, "adds the new defShare rule at its default");
+eq(m.rules.defShare, false, "adds the new defShare rule at its default \u2014 off, per the documented rule");
 eq(m.hands.every(h=>!!h.id && !!h.scoredUnder), true, "assigns hand ids and a rules snapshot");
 
 /* 3-side v1 */

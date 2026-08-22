@@ -20,6 +20,11 @@ hint, or a button whose only job is to advance.
 Dropped for now. A user landing on the record-a-hand slide sees chips and buttons with no label.
 Add back if the dots turn out to be insufficient.
 
+### Fourth landscape slide — record a hand
+Parked for v0 (ADR 0007). The two-column landscape layout is commented out in `docs/index.html`;
+re-enable by adding `land` back to the record slide and uncommenting the block. Revisit only if
+rotating to score proves annoying in real games.
+
 ### Recording a hand is portrait-only
 Landscape carries three sections: scores, bid table, card ranks. Recording a hand and the
 hands-played log are portrait tasks, so a player scoring mid-game has to rotate. Deliberate —

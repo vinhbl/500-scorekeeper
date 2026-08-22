@@ -133,7 +133,8 @@ group("five players — partner and alone");
   click(d, "#scoreBtn");
   const h = API.state().hands[0];
   eq(h.declaring, [0,2], "declaring holds bidder and partner");
-  eq(h.delta, [240,20,240,20,20], "bidder and partner both score; defShare on by default");
+  eq(h.delta, [240,10,240,10,0],
+     "bidder and partner both score; each defender keeps only their own trick");
   ok(d.querySelector(".log-row .amp"), "log shows the partnership");
 }
 {
@@ -494,7 +495,7 @@ function bootLandscape(){
   const { w, d } = bootLandscape();
   const dots = d.getElementById("dots");
   ok(!dots.hidden, "dots appear in landscape");
-  eq(dots.children.length, 4, "one dot per landscape slide, not per section");
+  eq(dots.children.length, 3, "one dot per landscape slide, not per section");
   eq([...dots.children].findIndex(b => b.className === "on"), 0,
      "the first slide is marked before any scroll");
 

@@ -373,9 +373,14 @@
     .meta{font-size:12px;letter-spacing:.1em}
 
 
-    /* ---- record a hand: two columns, sized to fit one slide ----
+    /* ---- PARKED for v0: record a hand is portrait-only ----
+       Kept because it works and a later release may want a fourth slide.
+       To re-enable: add the `land` class back to the record slide in the
+       markup and uncomment this block.
+
+    (* ---- record a hand: two columns, sized to fit one slide ----
        Landscape is wide and short, so identity goes left and numbers right.
-       Nothing here may scroll \u2014 the whole point is one screen. */
+       Nothing here may scroll \u2014 the whole point is one screen. *)
     .slide[data-slide="record"] .panel{
       flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;
       gap:0 22px;align-content:center;padding:14px 18px;
@@ -383,7 +388,7 @@
     .slide[data-slide="record"] .panel.idle{display:block}
     .slide[data-slide="record"] .contract-line{grid-column:1 / -1;margin-bottom:10px;font-size:17px}
     .slide[data-slide="record"] .field{margin-bottom:12px}
-    /* identity on the left, numbers and the action on the right */
+    (* identity on the left, numbers and the action on the right *)
     .slide[data-slide="record"] .rec-col{display:block;min-width:0}
     .slide[data-slide="record"] .rec-who{grid-column:1}
     .slide[data-slide="record"] .rec-num{grid-column:2}
@@ -392,6 +397,8 @@
     .slide[data-slide="record"] .srow{padding:6px 0}
     .slide[data-slide="record"] .step{width:32px;height:32px}
     .slide[data-slide="record"] .step-val{font-size:19px}
+
+    ---- end parked ---- */
 
     /* fewer rows means each card is taller, so the type can grow with them */
     .board.seats-3 .side,.board.seats-5 .side{padding:11px 20px;gap:5px}
@@ -576,7 +583,9 @@
   <!-- Each section is wrapped so landscape can page through them. In portrait
        the wrapper is an ordinary block and changes nothing.
        `land` marks the three sections that appear in the landscape carousel:
-       scores, bid table, card ranks. Recording a hand is a portrait task.
+       scores, bid table, card ranks. Recording a hand and the hands-played log
+       are portrait tasks for v0 \u2014 the landscape record layout is kept below,
+       commented out, in case a later release wants a fourth slide.
        This class is the single source of truth \u2014 the CSS hides the rest and
        app.js counts these for the dots. -->
   <div class="slide land" data-slide="score">
@@ -597,7 +606,7 @@
     <section class="panel idle" id="reference"></section>
   </div>
 
-  <div class="slide land" data-slide="record">
+  <div class="slide" data-slide="record">
     <div class="head"><h2>Record a hand</h2><div class="rule"></div></div>
     <section class="panel" id="record"></section>
   </div>

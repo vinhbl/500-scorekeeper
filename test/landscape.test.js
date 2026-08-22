@@ -42,8 +42,8 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
   eq(all, ["score","bids","ranks","record","log"],
      "portrait order: scores, bid table, card ranks, record a hand, hands played");
   const land = [...body.matchAll(/class="slide land" data-slide="([a-z]+)"/g)].map(function(m){ return m[1]; });
-  eq(land, ["score","bids","ranks","record"],
-     "landscape carries scores, bid table, card ranks and record a hand");
+  eq(land, ["score","bids","ranks"],
+     "landscape carries scores, bid table and card ranks only");
 }
 
 /* ---- every slide uses its screen, not just the bid table ---- */
@@ -73,32 +73,16 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
      "five stacked cards use smaller type so they still fit");
 }
 
-/* record a hand must fit one slide \u2014 that is the whole constraint */
+/* recording a hand is portrait-only in v0 */
 {
-  ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*grid-template-columns:1fr 1fr/.test(block),
-     "record splits into two columns in landscape");
-  ok(/\.slide\[data-slide="record"\] \.step\{width:32px;height:32px\}/.test(block),
-     "steppers stay compact so the rows fit without scrolling");
-  ok(/\.slide\[data-slide="record"\] \.panel\{[^}]*align-content:center/.test(block),
-     "its contents centre rather than stretching");
-  ok(/\.slide\[data-slide="record"\] \.rec-who\{grid-column:1\}/.test(block) &&
-     /\.slide\[data-slide="record"\] \.rec-num\{grid-column:2\}/.test(block),
-     "columns are placed by name, not by counting fields");
-  ok(!/\.slide\[data-slide="record"\][^{]*nth-of-type/.test(block),
-     "no positional placement \u2014 it breaks when the partner field appears");
-  ok(/\.rec-col\{display:contents\}/.test(css),
-     "the column wrappers are layout-neutral in portrait");
-  ok(!/\.slide\[data-slide="log"\]/.test(block),
-     "hands played stays portrait-only");
-}
-
-/* the bid table keeps the treatment built for reading across a table */
-{
-  ok(/table\.bids\{flex:1;min-height:0\}/.test(block), "bid table fills its slide via flex");
-  ok(!/table\.bids\{[^}]*height:100%/.test(block),
-     "table.bids must not set height:100% \u2014 it clips .specials in WebKit");
-  ok(/\.cell\{font-size:23px/.test(block), "cells enlarged for across-the-table reading");
-  ok(!/#specials[^{]*display:none/.test(block), "mis\u00e8re bids stay visible");
+  const live = block.replace(/\/\* ---- PARKED for v0[\s\S]*?---- end parked ---- \*\//, "");
+  ok(!/\.slide\[data-slide="record"\]/.test(live),
+     "no live landscape rules for record \u2014 it is portrait-only");
+  ok(!/\.slide\[data-slide="log"\]/.test(live), "hands played stays portrait-only");
+  ok(/PARKED for v0/.test(block),
+     "the landscape record layout is parked rather than deleted");
+  ok(/class="slide" data-slide="record"/.test(html),
+     "the record section has no land class");
 }
 
 /* the stepper replaced eleven chips per number */
@@ -146,7 +130,7 @@ const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("pr
   try { w2.eval(app); } catch(e){ threw = e.message; }
   ok(!threw, "app boots" + (threw ? " (" + threw + ")" : ""));
   eq(w2.document.querySelectorAll("main.wrap .slide").length, 5, "five sections in the DOM");
-  eq(w2.document.querySelectorAll("main.wrap .slide.land").length, 4, "four of them page in landscape");
+  eq(w2.document.querySelectorAll("main.wrap .slide.land").length, 3, "three of them page in landscape");
   ok(w2.document.getElementById("dots").hidden, "dots hidden in portrait");
   ok(w2.document.querySelector("#bidTable").innerHTML.indexOf("440") > -1, "bid table still renders");
 }

@@ -41,7 +41,10 @@
 
   var DEFAULT_RULES = {
     defTricks:true, slam:true, misereDef:false,
-    defShare:true, winOnBid:true, backDoor:true
+    /* Off by default: the documented rule in every source is that each defender
+       scores only the tricks they personally took. Tables that pool defensive
+       tricks turn this on. */
+    defShare:false, winOnBid:true, backDoor:true
   };
 
   function newId(p){
