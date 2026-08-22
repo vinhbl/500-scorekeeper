@@ -96,7 +96,9 @@
   .side-total.neg{color:var(--red)}
   .track{grid-column:1/-1;height:3px;background:var(--bone-2);position:relative;border-radius:2px}
   .track span{position:absolute;top:0;bottom:0;left:0;background:var(--ink);border-radius:2px}
-  .track span.neg{background:var(--red)}
+  @media (prefers-reduced-motion:no-preference){
+    .track span{transition:width .18s linear}
+  }
   .meta{grid-column:1/-1;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:rgba(14,26,43,.5)}
 
   .banner{

@@ -406,6 +406,55 @@
       renderRanks(trumpKey);
   }
 
+
+  /* ---------- scoring feedback ----------
+     After a hand lands, bring the board back into view and let the totals count
+     to their new value, so the change is something you watch rather than
+     something you have to go looking for. */
+  function reducedMotion(){
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function paintBoard(vals){
+    var sides = document.querySelectorAll("#board .side");
+    for(var i=0;i<sides.length && i<vals.length;i++){
+      var v = Math.round(vals[i]);
+      var tot = sides[i].querySelector(".side-total");
+      var bar = sides[i].querySelector(".track span");
+      var go  = sides[i].querySelector(".togo");
+      if(tot){ tot.textContent = v; tot.className = "side-total" + (v<0 ? " neg" : ""); }
+      if(bar){ bar.style.width = (Math.round(Math.min(100, Math.max(0, v)/500*100) * 10) / 10) + "%"; }
+      if(go){ go.textContent = (500 - v) + " TO GO"; }
+    }
+  }
+
+  function celebrateScore(from, to){
+    var board = $("board");
+    if(!board) return;
+
+    /* recording only happens in portrait, but never fight the carousel */
+    if(!inCarousel()){
+      try { window.scrollTo({top:0, behavior:"smooth"}); } catch(e){}
+    }
+
+    if(reducedMotion() || typeof requestAnimationFrame !== "function"){
+      paintBoard(to); return;
+    }
+
+    var DUR = 750, DELAY = 220, t0 = null;
+    paintBoard(from);
+    function frame(now){
+      if(t0 === null) t0 = now;
+      var p = Math.min(1, (now - t0 - DELAY) / DUR);
+      if(p < 0){ requestAnimationFrame(frame); return; }
+      var e = 1 - Math.pow(1 - p, 3);
+      paintBoard(to.map(function(v,i){ return from[i] + (v - from[i]) * e; }));
+      if(p < 1) requestAnimationFrame(frame);
+      else paintBoard(to);
+    }
+    requestAnimationFrame(frame);
+  }
+
   /* ---------- rendering ---------- */
   function renderBoard(){
     var t = totals();
@@ -413,13 +462,16 @@
     $("board").className = "board seats-" + S.game.seats;
     $("board").innerHTML = S.sides.map(function(sd,i){
       var v = t[i];
-      var pct = Math.min(100, Math.abs(v)/500*100);
       var neg = v < 0;
+      /* The bar measures progress toward winning, so a negative score is simply
+         no progress \u2014 it empties rather than filling the other way. The target
+         is always 500; going negative just makes it further off. */
+      var pct = Math.round(Math.min(100, Math.max(0, v)/500*100) * 10) / 10;
       return '<div class="side'+(v===max && v>0 ? ' lead':'')+'">'+
         '<input class="side-name" value="'+esc(sd.name)+'" data-side="'+i+'" aria-label="Side name" maxlength="18">'+
         '<div class="side-total'+(neg?' neg':'')+'">'+v+'</div>'+
-        '<div class="track"><span class="'+(neg?'neg':'')+'" style="width:'+pct+'%"></span></div>'+
-        '<div class="meta"><span>'+(neg?'TO \u2212500':'TO 500')+'</span><span>'+(neg?(500+v)+' LEFT':(500-v)+' TO GO')+'</span></div>'+
+        '<div class="track"><span style="width:'+pct+'%"></span></div>'+
+        '<div class="meta"><span>TO 500</span><span class="togo">'+(500-v)+' TO GO</span></div>'+
       '</div>';
     }).join("");
 
@@ -747,9 +799,12 @@
     }
     if(b.id === "scoreBtn"){
       if(!readyToScore()) return;
+      var before = totals();
       S.hands.push(buildHand());
       draft = blankDraft();
-      save(); renderAll(); return;
+      save(); renderAll();
+      celebrateScore(before, totals());
+      return;
     }
     if(role === "undo"){ S.hands.pop(); save(); renderAll(); return; }
 

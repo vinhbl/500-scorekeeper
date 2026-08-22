@@ -13,7 +13,19 @@ function eq(a,b,n){
 
 // static CSS assertions
 ok(/@media \(orientation:landscape\) and \(max-height:600px\) and \(pointer:coarse\)/.test(html),"landscape query is phone-scoped (height + coarse pointer)");
-const block = html.slice(html.indexOf("orientation:landscape"), html.indexOf("prefers-reduced-motion"));
+/* Extract the landscape @media block by matching braces rather than slicing
+   between markers \u2014 the old version broke the moment another media query was
+   added earlier in the stylesheet. */
+const block = (function(){
+  const at = html.indexOf("@media (orientation:landscape)");
+  if (at < 0) return "";
+  let i = html.indexOf("{", at), depth = 0;
+  for (let j = i; j < html.length; j++){
+    if (html[j] === "{") depth++;
+    else if (html[j] === "}"){ depth--; if (depth === 0) return html.slice(at, j + 1); }
+  }
+  return "";
+})();
 /* ---- landscape is a carousel, not a single view ----
    Every section now gets a slide. The old assertions checked that sections were
    hidden; hiding them is exactly what the carousel undoes. */

@@ -584,6 +584,67 @@ group("split appears only once the bidder's side is known");
      "unselected seat options are legible on the navy ground");
 }
 
+/* ================= the board reads toward 500, always ================= */
+group("negative scores");
+
+function boardCells(d){
+  return [...d.querySelectorAll("#board .side")].map(function(sd){
+    return {
+      total: sd.querySelector(".side-total").textContent,
+      neg:   sd.querySelector(".side-total").className.indexOf("neg") > -1,
+      width: sd.querySelector(".track span").getAttribute("style"),
+      target: sd.querySelectorAll(".meta span")[0].textContent,
+      togo:  sd.querySelector(".togo").textContent
+    };
+  });
+}
+
+{
+  const { d } = boot();
+  /* 7 spades bid and blown badly: bidder loses 140, defenders take the rest */
+  click(d, cellVal(d, 7, 0));
+  click(d, chip(d, "bidder", 0));
+  setTricks(d, 2);
+  click(d, "#scoreBtn");
+  const cells = boardCells(d);
+  eq(cells[0].total, "-140", "a failed contract goes negative");
+  ok(cells[0].neg, "and is styled as negative");
+  ok(/width:0%/.test(cells[0].width), "the bar empties rather than filling toward \u2212500");
+  eq(cells[0].target, "TO 500", "the target is still 500, never \u2212500");
+  eq(cells[0].togo, "640 TO GO", "distance to 500 counts the deficit \u2014 500 minus \u2212140");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 7, 0));
+  click(d, chip(d, "bidder", 0));
+  setTricks(d, 7);
+  click(d, "#scoreBtn");
+  const cells = boardCells(d);
+  eq(cells[0].total, "140", "a made contract scores");
+  eq(cells[0].width, "width:28%", "the bar fills proportionally, with a clean value");
+  eq(cells[0].togo, "360 TO GO", "and counts down to 500");
+}
+
+/* ---- scoring brings the board back and counts to the new total ---- */
+{
+  const { d, w } = boot();
+  let scrolled = null;
+  w.scrollTo = function(opts){ scrolled = opts; };
+  w.matchMedia = function(q){ return { matches: /reduce/.test(q), media: q,
+    addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} }; };
+
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  setTricks(d, 8);
+  click(d, "#scoreBtn");
+
+  ok(scrolled && scrolled.top === 0, "the page scrolls back up to the board");
+  eq(scrolled.behavior, "smooth", "gently, not a jump");
+  /* reduced motion short-circuits straight to the final value */
+  eq(d.querySelector("#board .side-total").textContent, "300",
+     "with reduced motion the total lands immediately rather than counting");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();
