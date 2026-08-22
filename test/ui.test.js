@@ -18,7 +18,10 @@ function group(n){ console.log("\n" + n); }
 
 function boot(seedKey, seedValue){
   const html = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
-  const dom = new JSDOM(html, { runScripts: "outside-only", url: "https://example.com/500/" });
+  /* pretendToBeVisual gives jsdom a requestAnimationFrame; without it the app
+   takes its reduced-motion path and the scroll/count tween never runs */
+  const dom = new JSDOM(html, { runScripts: "outside-only", url: "https://example.com/500/",
+                                pretendToBeVisual: true });
   const w = dom.window;
   const store = {};
   if(seedKey) store[seedKey] = seedValue;
@@ -32,6 +35,13 @@ function boot(seedKey, seedValue){
   });
   const app = fs.readFileSync(path.join(__dirname, "..", "docs", "app.js"), "utf8");
   w.eval(app);
+  /* Deterministic by default: report reduced motion so the board paints its
+     final values synchronously. Tests that care about the animation override
+     matchMedia themselves after booting. */
+  w.matchMedia = function(q){
+    return { matches: /prefers-reduced-motion/.test(q), media: q,
+             addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} };
+  };
   return { w, d: w.document, store, API: w.__500 };
 }
 
@@ -475,7 +485,7 @@ group("carousel dots");
 
 function bootLandscape(){
   const dom = new JSDOM(fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8"),
-                        { runScripts:"outside-only", url:"https://example.com/" });
+                        { runScripts:"outside-only", url:"https://example.com/", pretendToBeVisual:true });
   const w = dom.window; const store = {};
   Object.defineProperty(w, "localStorage", {value:{
     getItem:k=>k in store?store[k]:null, setItem:(k,v)=>{store[k]=v}, removeItem:k=>{delete store[k]}
@@ -625,11 +635,13 @@ function boardCells(d){
   eq(cells[0].togo, "360 TO GO", "and counts down to 500");
 }
 
-/* ---- scoring brings the board back and counts to the new total ---- */
+/* ---- scoring brings the board back, then counts ---- */
+
+/* reduced motion: no tween, straight to the answer */
 {
   const { d, w } = boot();
-  let scrolled = null;
-  w.scrollTo = function(opts){ scrolled = opts; };
+  const calls = [];
+  w.scrollTo = function(){ calls.push([].slice.call(arguments)); };
   w.matchMedia = function(q){ return { matches: /reduce/.test(q), media: q,
     addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} }; };
 
@@ -638,11 +650,63 @@ function boardCells(d){
   setTricks(d, 8);
   click(d, "#scoreBtn");
 
-  ok(scrolled && scrolled.top === 0, "the page scrolls back up to the board");
-  eq(scrolled.behavior, "smooth", "gently, not a jump");
-  /* reduced motion short-circuits straight to the final value */
+  eq(calls.length, 1, "one jump, not a tween");
+  eq(calls[0], [0, 0], "straight to the top");
   eq(d.querySelector("#board .side-total").textContent, "300",
-     "with reduced motion the total lands immediately rather than counting");
+     "and the total lands immediately rather than counting");
+}
+
+/* normal motion: the scroll is scripted, and the count waits for it to finish */
+{
+  const { d, w } = boot();
+  const calls = [];
+  w.scrollTo = function(){ calls.push([].slice.call(arguments)); };
+  w.matchMedia = function(q){ return { matches: false, media: q,
+    addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} }; };
+  Object.defineProperty(w, "pageYOffset", { value: 640, configurable: true });
+
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  setTricks(d, 8);
+  click(d, "#scoreBtn");
+
+  eq(d.querySelector("#board .side-total").textContent, "0",
+     "the board still shows the old total the instant the hand is scored");
+
+  deferred.push(function(){
+    ok(calls.length > 3, "the scroll is tweened over many frames, not a single jump");
+    eq(calls[calls.length - 1], [0, 0], "and finishes at the top");
+    ok(+d.querySelector("#board .side-total").textContent > 0,
+       "the count starts only after the scroll has finished");
+  });
+}
+
+/* ================= settings chip ================= */
+group("house rules ingress");
+
+{
+  const { d } = boot();
+  const sum = d.querySelector("details.rules summary");
+  ok(sum, "the way in is a summary, so the disclosure stays native");
+  ok(d.querySelector(".settings-ic"), "it carries a gear");
+  ok(d.querySelector(".settings-chev"), "and a chevron");
+  eq(d.querySelector(".settings-txt b").textContent, "Settings", "bold label reads Settings");
+  eq(d.querySelector("#settingsSummary").textContent.trim(), "\u00b7 2 sides",
+     "with the current setup beside it in the lighter face");
+}
+{
+  const { d } = boot();
+  click(d, chip(d, "seats", 3));
+  eq(d.querySelector("#settingsSummary").textContent.trim(), "\u00b7 3 players",
+     "the summary follows the seat count");
+  click(d, chip(d, "seats", 5));
+  eq(d.querySelector("#settingsSummary").textContent.trim(), "\u00b7 5 players", "and again at five");
+}
+{
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  ok(/details\.rules\[open\] \.settings-chev\{transform:rotate\(180deg\)\}/.test(src),
+     "the chevron flips to point up when the section is open");
+  ok(!/summary::before\{content:"\+ "\}/.test(src), "the old plus/minus marker is gone");
 }
 
 /* a full hand still records, with no confirm step in the way */
@@ -657,10 +721,11 @@ function boardCells(d){
   ok(d.getElementById("reference").className.indexOf("idle") > -1, "reference resets for the next hand");
 }
 
+/* long enough for the scroll tween (900ms) plus the pause and count (1350ms) */
 setTimeout(function(){
   deferred.forEach(function(f){ f(); });
   console.log("\n" + pass + " passed, " + fail + " failed\n");
   process.exit(fail ? 1 : 0);
-}, 80);
+}, 2600);
 
 

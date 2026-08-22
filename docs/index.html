@@ -205,14 +205,34 @@
   .empty b{color:var(--ink)}
 
   /* ---------- rules ---------- */
-  details.rules{border-top:1px solid var(--line-lt);margin-top:30px;padding-top:14px}
+  details.rules{margin-top:28px}
+  /* The way in is a status chip: it says what the setup currently is, so a
+     mid-game rules argument is often answered without opening anything. */
   details.rules summary{
-    cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.16em;
-    text-transform:uppercase;color:rgba(239,233,220,.5);list-style:none;padding:4px 0;
+    display:flex;align-items:center;gap:10px;
+    padding:12px 15px;border:1px solid var(--line-lt);border-radius:999px;
+    cursor:pointer;list-style:none;transition:border-color .15s,background .15s;
   }
   details.rules summary::-webkit-details-marker{display:none}
-  details.rules summary::before{content:"+ "}
-  details.rules[open] summary::before{content:"\2013 "}
+  details.rules summary::marker{content:""}
+  details.rules summary:hover{background:rgba(239,233,220,.05);border-color:rgba(239,233,220,.3)}
+  details.rules summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .settings-ic{width:17px;height:17px;flex:none;color:rgba(239,233,220,.55)}
+  .settings-txt{
+    flex:1;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
+    color:rgba(239,233,220,.55);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .settings-txt b{
+    font-family:var(--ui);font-size:13px;font-weight:700;letter-spacing:0;
+    color:var(--bone);margin-right:2px;
+  }
+  .settings-chev{width:15px;height:15px;flex:none;color:rgba(239,233,220,.45)}
+  @media (prefers-reduced-motion:no-preference){
+    .settings-chev{transition:transform .22s ease}
+  }
+  details.rules[open] .settings-chev{transform:rotate(180deg)}
+  details.rules[open] summary{border-color:rgba(239,233,220,.3)}
+  #rules{padding-top:6px}
   .rule-item{display:flex;gap:11px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line-lt)}
   .rule-item:last-of-type{border-bottom:0}
   .rule-item input{margin-top:3px;accent-color:var(--gold);width:19px;height:19px;flex:none}
@@ -619,7 +639,18 @@
   </div>
 
   <details class="rules">
-    <summary>House rules &amp; setup</summary>
+    <summary>
+      <svg class="settings-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.31.4.55.71.66H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span class="settings-txt"><b>Settings</b><span id="settingsSummary"> \u00b7 2 sides</span></span>
+      <svg class="settings-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </summary>
     <div id="rules"></div>
   </details>
 

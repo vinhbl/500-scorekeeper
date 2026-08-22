@@ -411,8 +411,24 @@
      After a hand lands, bring the board back into view and let the totals count
      to their new value, so the change is something you watch rather than
      something you have to go looking for. */
+  var SCROLL_MS = 900, PAUSE_MS = 250, COUNT_MS = 1100;
+
   function reducedMotion(){
     return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+  function easeInOutCubic(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  function tween(dur, ease, onStep, onDone){
+    var t0 = null;
+    function frame(now){
+      if(t0 === null) t0 = now;
+      var p = dur <= 0 ? 1 : Math.min(1, (now - t0) / dur);
+      onStep(ease(p));
+      if(p < 1) requestAnimationFrame(frame);
+      else if(onDone) onDone();
+    }
+    requestAnimationFrame(frame);
   }
 
   function paintBoard(vals){
@@ -432,27 +448,33 @@
     var board = $("board");
     if(!board) return;
 
-    /* recording only happens in portrait, but never fight the carousel */
-    if(!inCarousel()){
-      try { window.scrollTo({top:0, behavior:"smooth"}); } catch(e){}
+    var top = 0;
+    try { top = window.pageYOffset || document.documentElement.scrollTop || 0; } catch(e){}
+
+    /* the count begins when the scroll ENDS, not after a guessed delay, so the
+       board is always settled before a number moves */
+    function startCount(){
+      setTimeout(function(){
+        tween(COUNT_MS, easeOutCubic, function(e){
+          paintBoard(to.map(function(v,i){ return from[i] + (v - from[i]) * e; }));
+        }, function(){ paintBoard(to); });
+      }, PAUSE_MS);
     }
 
     if(reducedMotion() || typeof requestAnimationFrame !== "function"){
-      paintBoard(to); return;
+      if(!inCarousel()){ try { window.scrollTo(0,0); } catch(e){} }
+      paintBoard(to);
+      return;
     }
 
-    var DUR = 750, DELAY = 220, t0 = null;
     paintBoard(from);
-    function frame(now){
-      if(t0 === null) t0 = now;
-      var p = Math.min(1, (now - t0 - DELAY) / DUR);
-      if(p < 0){ requestAnimationFrame(frame); return; }
-      var e = 1 - Math.pow(1 - p, 3);
-      paintBoard(to.map(function(v,i){ return from[i] + (v - from[i]) * e; }));
-      if(p < 1) requestAnimationFrame(frame);
-      else paintBoard(to);
-    }
-    requestAnimationFrame(frame);
+
+    /* already at the top, or paging the carousel \u2014 nothing to scroll */
+    if(inCarousel() || top <= 0){ startCount(); return; }
+
+    tween(SCROLL_MS, easeInOutCubic, function(e){
+      try { window.scrollTo(0, Math.round(top * (1 - e))); } catch(err){}
+    }, startCount);
   }
 
   /* ---------- rendering ---------- */
@@ -728,6 +750,9 @@
 
     html += '<button class="danger" data-role="reset">Start a new game</button>';
     $("rules").innerHTML = html;
+
+    var sum = $("settingsSummary");
+    if(sum) sum.textContent = " \u00b7 " + S.game.seats + (S.game.seats === 2 ? " sides" : " players");
   }
 
   function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderReference(); renderLog(); renderRules(); }
