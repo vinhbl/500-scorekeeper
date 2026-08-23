@@ -350,10 +350,14 @@ group("round reference");
 
 {
   const { d } = boot();
-  ok(d.getElementById("reference"), "the reference section always exists");
-  ok(d.getElementById("reference").className.indexOf("idle") > -1, "it sits idle before a bid");
-  ok(d.getElementById("reference").textContent.indexOf("Pick a contract") > -1, "and prompts for one");
-  eq(d.querySelectorAll("#reference .rcard").length, 0, "no ladder without a trump suit");
+  ok(d.getElementById("referencePage"), "the reference rides in the bid pager");
+  ok(d.getElementById("reference"), "and has a standalone mount for landscape");
+  eq(d.querySelector("#referencePage .contract").textContent.trim(), "6\u2660",
+     "with no bid it falls back to the lowest contract rather than an empty state");
+  ok(d.querySelector("#referencePage .ref-pts").textContent.indexOf("40") > -1, "showing its value");
+  ok(d.querySelectorAll("#referencePage .rcard").length > 0, "the ladder is drawn straight away");
+  ok(d.querySelector("#referencePage .rk-head").textContent.indexOf("Spades") > -1,
+     "spades, being the lowest suit");
 }
 
 /* the bid alone drives it — no confirmation, no bidder needed */
@@ -361,10 +365,10 @@ group("round reference");
   const { d } = boot();
   click(d, cellVal(d, 8, 3));                      // 8 hearts = 300
   ok(!d.getElementById("bidSheet").hidden, "the bid table is never replaced");
-  eq(d.querySelector("#reference .contract").textContent.trim(), "8\u2665", "contract shown");
+  eq(d.querySelector("#referencePage .contract").textContent.trim(), "8\u2665", "contract shown");
   ok(d.querySelector(".ref-pts").textContent.indexOf("300") > -1, "point value shown");
   ok(d.querySelector(".rk-head").textContent.indexOf("Hearts") > -1, "ladder names the trump suit");
-  eq(d.querySelectorAll("#reference .rcard.bower").length, 2, "both bowers marked");
+  eq(d.querySelectorAll("#referencePage .rcard.bower").length, 2, "both bowers marked");
   eq(d.querySelector(".jk-card .r").textContent, "JKR", "joker chip labelled");
   ok(d.querySelector(".jk-card .jk"), "joker carries the drawn mark");
   ok(d.querySelector(".rk-note").textContent.indexOf("jack of diamonds") > -1, "note names the promoted jack");
@@ -379,20 +383,43 @@ group("round reference");
   click(d, cellVal(d, 8, 3));                      // hearts
   click(d, cellVal(d, 9, 0));                      // 9 spades — higher, so selectable
   ok(d.querySelector(".rk-head").textContent.indexOf("Spades") > -1, "ladder follows the new suit");
-  const bowers = [...d.querySelectorAll("#reference .rcard.bower")].map(function(c){
+  const bowers = [...d.querySelectorAll("#referencePage .rcard.bower")].map(function(c){
     return c.querySelector(".s").textContent;
   });
   eq(bowers, ["\u2660","\u2663"], "spade trump promotes the club jack");
   eq(d.querySelector(".rcard.tail").textContent.trim(), "6 5", "black trump runs to 5 in a 43-card deck");
 }
 
-/* clearing the bid returns the section to idle */
+/* clearing the bid returns the reference to its default, not to nothing */
 {
   const { d } = boot();
   click(d, cellVal(d, 8, 3));
+  eq(d.querySelector("#referencePage .contract").textContent.trim(), "8\u2665", "follows the bid");
   click(d, cellVal(d, 8, 3));                      // tap again to clear
-  ok(d.getElementById("reference").className.indexOf("idle") > -1, "reference goes idle again");
-  eq(d.querySelectorAll("#reference .rcard").length, 0, "ladder cleared");
+  eq(d.querySelector("#referencePage .contract").textContent.trim(), "6\u2660",
+     "and falls back to 6 spades when the bid is cleared");
+  ok(d.querySelectorAll("#referencePage .rcard").length > 0, "the ladder stays on screen");
+}
+
+/* both mounts render the same thing from one source */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 9, 2));
+  eq(d.querySelector("#reference .rk-head").textContent,
+     d.querySelector("#referencePage .rk-head").textContent,
+     "the landscape slide and the pager page agree");
+}
+
+/* the pager and its dots */
+{
+  const { d } = boot();
+  eq(d.querySelectorAll("#bidPager .page").length, 2, "two pages: bid table then ranks");
+  eq(d.getElementById("bidDots").children.length, 2, "one dot each");
+  eq([...d.getElementById("bidDots").children].findIndex(b => b.className === "on"), 0,
+     "starting on the bid table");
+  ok(d.querySelector("#bidPager .page #bidSheet"), "the bid table is the first page");
+  ok(d.querySelector("#bidPager .page-ref #referencePage"), "the reference is the second");
+  eq(d.querySelectorAll("#refHead").length, 0, "the card ranks heading is gone");
 }
 
 /* deck floor follows seat count */
@@ -414,15 +441,15 @@ group("round reference");
   const { d } = boot();
   click(d, cellVal(d, 8, 4));
   ok(d.querySelector(".rk-head").textContent.indexOf("no trumps") > -1, "no-trump header");
-  eq(d.querySelectorAll("#reference .rcard.bower").length, 0, "no bowers in no-trumps");
-  eq(d.querySelectorAll("#reference .quad").length, 8, "every rank shows all four suits");
+  eq(d.querySelectorAll("#referencePage .rcard.bower").length, 0, "no bowers in no-trumps");
+  eq(d.querySelectorAll("#referencePage .quad").length, 8, "every rank shows all four suits");
 }
 {
   const { d } = boot();
   click(d, d.querySelector('[data-id="misere"]'));
   ok(d.querySelector(".rk-head").textContent.indexOf("no trumps") > -1,
      "mis\u00e8re borrows the no-trump ladder");
-  ok(d.querySelector("#reference .contract").textContent.indexOf("Mis") > -1, "mis\u00e8re contract shown");
+  ok(d.querySelector("#referencePage .contract").textContent.indexOf("Mis") > -1, "mis\u00e8re contract shown");
 }
 
 /* ---- the ladder must actually be styled ----
@@ -718,7 +745,8 @@ group("house rules ingress");
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "hand recorded");
   eq(API.state().hands[0].delta, [300,20], "scored correctly");
-  ok(d.getElementById("reference").className.indexOf("idle") > -1, "reference resets for the next hand");
+  eq(d.querySelector("#referencePage .contract").textContent.trim(), "6\u2660",
+     "the reference resets to its default for the next hand");
 }
 
 /* long enough for the scroll tween (900ms) plus the pause and count (1350ms) */

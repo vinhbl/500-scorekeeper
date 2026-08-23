@@ -262,6 +262,34 @@
   }
 
 
+
+  /* ---- bid table / card ranks pager (portrait) ----
+     Two pages under one heading. Flex stretches both to the taller of the two,
+     so swiping never changes the height of the page you are reading. */
+  .pager{
+    display:flex;overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .pager::-webkit-scrollbar{display:none}
+  .page{
+    flex:0 0 100%;min-width:0;scroll-snap-align:center;scroll-snap-stop:always;
+    display:flex;flex-direction:column;
+  }
+  .page > section{flex:1}
+  /* the reference is shorter than the grid, so it sits centred in the slack */
+  .page-ref > section{flex:none;margin:auto 0}
+  .pager-dots{display:flex;justify-content:center;gap:7px;margin-top:11px}
+  .pager-dots b{
+    width:7px;height:7px;border-radius:50%;background:var(--bone);opacity:.28;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .pager-dots b{transition:opacity .18s,transform .18s}
+  }
+  .pager-dots b.on{opacity:1;transform:scale(1.15)}
+  /* in portrait the standalone ranks slide is redundant \u2014 it lives in the pager */
+  .slide[data-slide="ranks"]{display:none}
+
   /* ===================== round reference =====================
      Always present. Shows the standing bid and how trump reorders the deck.
      Needs only the contract, so it costs the user no extra input. */
@@ -363,6 +391,10 @@
 
     /* the bid table keeps its across-the-table treatment */
     .slide[data-slide="bids"]{justify-content:stretch}
+    /* landscape: the pager collapses to the bid table and ranks gets its slide */
+    .page-ref,.pager-dots{display:none}
+    .pager{display:flex;flex:1;overflow:visible;min-height:0}
+    .pager .page{flex:1}
     .sheet{
       flex:1;margin:0;border-radius:4px;padding:9px 11px;
       display:flex;flex-direction:column;min-height:0;
@@ -617,15 +649,26 @@
 
   <div class="slide land" data-slide="bids">
     <div class="head"><h2>The bid table</h2><div class="rule"></div><div class="note" id="bidNote">Avondale</div></div>
-    <section class="sheet" id="bidSheet">
-      <table class="bids" id="bidTable"></table>
-      <div class="specials" id="specials"></div>
-    </section>
+    <!-- Portrait pages the bid table and the rank reference side by side under
+         one heading. In landscape the second page is hidden and the standalone
+         ranks slide below takes over, so the same content is rendered into both
+         mount points. -->
+    <div class="pager" id="bidPager">
+      <div class="page">
+        <section class="sheet" id="bidSheet">
+          <table class="bids" id="bidTable"></table>
+          <div class="specials" id="specials"></div>
+        </section>
+      </div>
+      <div class="page page-ref">
+        <section class="panel ref" id="referencePage"></section>
+      </div>
+    </div>
+    <nav class="pager-dots" id="bidDots" aria-hidden="true"></nav>
   </div>
 
   <div class="slide land" data-slide="ranks">
-    <div class="head" id="refHead"><h2>Card ranks</h2><div class="rule"></div></div>
-    <section class="panel idle" id="reference"></section>
+    <section class="panel ref" id="reference"></section>
   </div>
 
   <div class="slide" data-slide="record">

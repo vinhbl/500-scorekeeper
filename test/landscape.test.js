@@ -106,6 +106,18 @@ const block = (function(){
   ok(/\.remain\{/.test(css), "a running remainder replaces the assigned-of tally");
 }
 
+/* ---- the portrait pager collapses in landscape ---- */
+{
+  ok(/\.page-ref,\.pager-dots\{display:none\}/.test(block),
+     "the second page and its dots are hidden \u2014 ranks has its own slide here");
+  ok(/\.pager\{display:flex;flex:1/.test(block), "the pager stretches to the slide");
+  ok(/\.slide\[data-slide="ranks"\]\{display:none\}/.test(css),
+     "and in portrait the standalone ranks slide is the one that hides");
+  ok(!/id="refHead"/.test(html), "the card ranks heading is gone entirely");
+  ok(/id="referencePage"/.test(html) && /id="reference"/.test(html),
+     "two mount points, one rendered source");
+}
+
 /* dots */
 {
   ok(/\.dots\{[^}]*position:fixed/.test(block), "the dot rail is pinned");

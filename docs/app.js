@@ -375,18 +375,12 @@
 
   /* The round reference. Driven by the standing bid alone — it needs the trump
      suit and nothing else, so it costs the user no extra input to see it. */
-  function renderReference(){
-    var el = $("reference");
-    var c = draft.contract;
+  /* Before any bid exists the reference still has to show something, so it
+     falls back to the lowest contract rather than an empty state. */
+  var DEFAULT_CONTRACT = {type:"suit", level:6, suit:"spades", label:"6 \u2660", value:40};
 
-    if(!c){
-      el.className = "panel idle";
-      el.innerHTML = '<p class="contract-line" style="margin:0">Pick a contract above.</p>'+
-        '<div class="tally">The card ranks for that hand\u2019s trump suit will show here.</div>';
-      return;
-    }
-    el.className = "panel ref";
-
+  function referenceHTML(){
+    var c = draft.contract || DEFAULT_CONTRACT;
     var isMis = c.type === "misere";
     /* mis\u00e8re is played without trumps, so it borrows the no-trump ladder */
     var trumpKey = isMis ? "notrump" : c.suit;
@@ -398,14 +392,42 @@
           : '<span class="st '+suitColour(c.suit)+'">'+suitByKey(c.suit).glyph+'</span>');
     var lv = (!isMis) ? '<span class="lv">'+c.level+'</span>' : '';
 
-    el.innerHTML =
-      '<div class="ref-band">'+
+    return '<div class="ref-band">'+
         '<div class="contract">'+lv+st+'</div>'+
         '<div class="ref-pts">'+c.value+'<span>PTS</span></div>'+
       '</div>'+
       renderRanks(trumpKey);
   }
 
+  /* Two mount points, one source: the pager page carries it in portrait, the
+     standalone slide in landscape. CSS decides which is visible. */
+  function renderReference(){
+    var html = referenceHTML();
+    ["reference","referencePage"].forEach(function(id){
+      var el = $(id);
+      if(!el) return;
+      el.className = "panel ref";
+      el.innerHTML = html;
+    });
+  }
+
+  /* ---------- bid table / ranks pager dots ---------- */
+  function buildBidDots(){
+    var dots = $("bidDots"), pager = $("bidPager");
+    if(!dots || !pager || !dots.children || !pager.children) return;
+    if(dots.children.length !== pager.children.length){
+      dots.innerHTML = new Array(pager.children.length + 1).join("<b></b>");
+    }
+    markBidDot();
+  }
+  function markBidDot(){
+    var dots = $("bidDots"), pager = $("bidPager");
+    if(!dots || !pager || !dots.children) return;
+    var i = pager.clientWidth ? Math.round(pager.scrollLeft / pager.clientWidth) : 0;
+    for(var k=0;k<dots.children.length;k++){
+      dots.children[k].className = (k === i ? "on" : "");
+    }
+  }
 
   /* ---------- scoring feedback ----------
      After a hand lands, bring the board back into view and let the totals count
@@ -920,6 +942,7 @@
 
   var dotTick = false;
   document.addEventListener("scroll", function(e){
+    if(e.target && e.target.id === "bidPager"){ markBidDot(); return; }
     if(!e.target || !e.target.classList || !e.target.classList.contains("wrap")) return;
     if(dotTick) return;
     dotTick = true;
@@ -930,12 +953,14 @@
 
   if(typeof window !== "undefined" && window.addEventListener){
     window.addEventListener("resize", buildDots);
+    window.addEventListener("resize", markBidDot);
     window.addEventListener("orientationchange", function(){ setTimeout(buildDots, 120); });
   }
 
   load();
   renderAll();
   buildDots();
+  buildBidDots();
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){
