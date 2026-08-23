@@ -40,8 +40,8 @@ const block = (function(){
   ok(/\.slide:not\(\.land\)\{display:none\}/.test(block),
      "sections without the land class are cut from landscape");
   ok(/\.slide \.head\{display:none\}/.test(block), "section headings come off in landscape");
-  ok(/\.mast,details\.rules,\.colophon\{display:none!important\}/.test(block),
-     "masthead, house rules and colophon stay out of the carousel");
+  ok(/\.mast,\.settings,\.colophon\{display:none!important\}/.test(block),
+     "masthead, settings and colophon stay out of the carousel");
   ["#record","#log","#board","#reference"].forEach(function(sel){
     ok(block.indexOf(sel + "{display:none") === -1, sel + " is no longer hidden \u2014 it has a slide");
   });

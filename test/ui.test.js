@@ -289,7 +289,7 @@ function cellVal(d, lv, si){
   eq(cellVal(d, 7, 3).classList.contains("dead"), false, "the standing bid itself is not struck out");
   eq(cellVal(d, 7, 4).disabled, false, "7 no-trumps at 220 stays available");
   eq(cellVal(d, 6, 0).disabled, true, "an outbid cell is disabled, not merely faded");
-  ok(d.querySelector("#bidNote").textContent.indexOf("stands") > -1, "header names the standing bid");
+  eq(d.querySelector("#bidNote").textContent, "Avondale", "the bid table subtitle is fixed text");
 }
 {
   const { d } = boot();
@@ -331,7 +331,7 @@ function cellVal(d, lv, si){
   click(d, cellVal(d, 8, 3));                       // 300 stands
   click(d, cellVal(d, 6, 0));                       // 40 — outbid
   eq(API.state().hands.length, 0, "no hand recorded");
-  eq(d.querySelector("#bidNote").textContent.indexOf("8") > -1, true, "the standing bid is unchanged");
+  eq(d.querySelector("#bidNote").textContent, "Avondale", "the subtitle never changes");
 }
 
 /* scoring a hand resets eligibility for the next one */
@@ -712,32 +712,101 @@ function boardCells(d){
   });
 }
 
-/* ================= settings chip ================= */
-group("house rules ingress");
+/* ================= settings chips ================= */
+group("settings");
 
 {
   const { d } = boot();
-  const sum = d.querySelector("details.rules summary");
-  ok(sum, "the way in is a summary, so the disclosure stays native");
-  ok(d.querySelector(".settings-ic"), "it carries a gear");
-  ok(d.querySelector(".settings-chev"), "and a chevron");
-  eq(d.querySelector(".settings-txt b").textContent, "Settings", "bold label reads Settings");
-  eq(d.querySelector("#settingsSummary").textContent.trim(), "\u00b7 2 sides",
-     "with the current setup beside it in the lighter face");
+  eq([...d.querySelectorAll(".schip-txt b")].map(b => b.textContent),
+     ["Start a new game", "Player count", "House rules"], "three chips, in order");
+  eq(d.getElementById("newGameSub").textContent, "", "no game yet, so no status line");
+  eq(d.getElementById("playersSub").textContent, "4-player mode", "the table is described in players");
+  eq(d.getElementById("rulesSub").textContent, "Default", "and the rules start untouched");
 }
 {
   const { d } = boot();
-  click(d, chip(d, "seats", 3));
-  eq(d.querySelector("#settingsSummary").textContent.trim(), "\u00b7 3 players",
-     "the summary follows the seat count");
+  eq([...d.querySelectorAll('[data-role="seats"]')].map(b => b.textContent),
+     ["4-player", "3-player", "5-player"], "two sides now reads as four players");
   click(d, chip(d, "seats", 5));
-  eq(d.querySelector("#settingsSummary").textContent.trim(), "\u00b7 5 players", "and again at five");
+  eq(d.getElementById("playersSub").textContent, "5-player mode", "the subtitle follows the choice");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(d.getElementById("newGameSub").textContent, "Current game in progress",
+     "the new-game chip reports a game underway");
+}
+{
+  const { d } = boot();
+  eq(d.getElementById("rulesSub").textContent, "Default", "default to begin with");
+  const box = d.querySelector('[data-rule="slam"]');
+  box.checked = !box.checked;
+  box.dispatchEvent(new d.defaultView.Event("change", { bubbles: true }));
+  eq(d.getElementById("rulesSub").textContent, "Custom", "and custom once a rule is changed");
+}
+
+/* disclosure: the two expandable chips, and the one that is not */
+{
+  const { d } = boot();
+  const players = d.querySelector('[data-target="playersPanel"]');
+  eq(players.getAttribute("aria-expanded"), "false", "player count starts collapsed");
+  ok(d.getElementById("playersPanel").className.indexOf("open") < 0, "its panel is closed");
+  click(d, players);
+  eq(players.getAttribute("aria-expanded"), "true", "and opens on tap");
+  ok(d.getElementById("playersPanel").className.indexOf("open") > -1, "revealing the panel");
+  click(d, players);
+  eq(players.getAttribute("aria-expanded"), "false", "and closes again");
+
+  ok(!d.querySelector('[data-role="reset"]').hasAttribute("aria-expanded"),
+     "start a new game is an action, not a disclosure");
+  ok(d.querySelector('[data-role="reset"] .schip-chev.fixed'),
+     "so its chevron points right and never rotates");
 }
 {
   const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
-  ok(/details\.rules\[open\] \.settings-chev\{transform:rotate\(180deg\)\}/.test(src),
-     "the chevron flips to point up when the section is open");
-  ok(!/summary::before\{content:"\+ "\}/.test(src), "the old plus/minus marker is gone");
+  ok(/\.disclosure\{display:grid;grid-template-rows:0fr\}/.test(src),
+     "panels animate from a zero-height grid row rather than snapping open");
+  ok(/\.disclosure\.open\{grid-template-rows:1fr\}/.test(src), "to full height");
+  ok(/\.pager-dots b\{[\s\S]*?opacity:\.16/.test(src), "the page bullets are quieter");
+}
+
+/* ---- a scored hand stays on screen until the next bid ---- */
+{
+  const { d, API } = boot();
+  ok(d.getElementById("record").className.indexOf("idle") > -1,
+     "the prompt shows before the first hand");
+
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+
+  eq(API.state().hands.length, 1, "hand recorded");
+  eq(d.querySelector("#record .submit").textContent, "Undo this hand",
+     "the button becomes Undo rather than resetting the panel");
+  ok(d.querySelector("#record .contract-line").textContent.indexOf("300") > -1,
+     "the hand that was just played is still on screen");
+  ok([...d.querySelectorAll("#record .chip")].every(c => c.disabled),
+     "its inputs are locked");
+  eq(d.querySelectorAll("#record .step").length, 0, "and the stepper is a plain readout");
+  eq(d.querySelectorAll("#bidTable .cell.dead").length, 0,
+     "the bid table clears \u2014 the auction is over");
+
+  click(d, "#undoBtn");
+  eq(API.state().hands.length, 0, "undo removes the hand");
+  eq(d.querySelector("#record .submit").textContent, "Score this hand", "and hands the panel back");
+  ok([...d.querySelectorAll("#record .chip")].some(c => !c.disabled), "inputs editable again");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  click(d, cellVal(d, 9, 2));
+  eq(d.querySelector("#record .submit").textContent, "Score this hand",
+     "picking the next bid replaces the recorded hand");
+  ok(d.querySelector("#record .contract-line").textContent.indexOf("380") > -1, "with the new contract");
 }
 
 /* a full hand still records, with no confirm step in the way */
@@ -749,8 +818,8 @@ group("house rules ingress");
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "hand recorded");
   eq(API.state().hands[0].delta, [300,20], "scored correctly");
-  eq(d.querySelector("#referencePage .contract").textContent.trim(), "6\u2660",
-     "the reference resets to its default for the next hand");
+  ok(d.querySelector("#referencePage .contract").textContent.indexOf("8") > -1,
+     "the reference still shows the hand that was just scored, until the next bid");
 }
 
 /* long enough for the scroll tween (900ms) plus the pause and count (1350ms) */

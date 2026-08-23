@@ -183,6 +183,10 @@
   }
   .submit:disabled{background:rgba(239,233,220,.14);color:rgba(239,233,220,.35);cursor:not-allowed}
   .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+  .submit.undo{
+    background:transparent;color:rgba(239,233,220,.75);border:1px solid var(--line-lt);
+  }
+  .submit.undo:hover{background:rgba(239,233,220,.06);color:var(--bone)}
   .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(239,233,220,.6)}
 
   /* ---------- log ---------- */
@@ -209,34 +213,47 @@
   .empty b{color:var(--ink)}
 
   /* ---------- rules ---------- */
-  details.rules{margin-top:28px}
-  /* The way in is a status chip: it says what the setup currently is, so a
-     mid-game rules argument is often answered without opening anything. */
-  details.rules summary{
-    display:flex;align-items:center;gap:10px;
+  /* ---- settings chips ----
+     Three ways in, each stating its current state so a mid-game question is
+     often answered without opening anything. */
+  .settings{margin-top:28px;display:flex;flex-direction:column;gap:9px}
+  .schip{
+    display:flex;align-items:center;gap:11px;width:100%;
     padding:12px 15px;border:1px solid var(--line-lt);border-radius:999px;
-    cursor:pointer;list-style:none;transition:border-color .15s,background .15s;
+    background:transparent;cursor:pointer;text-align:left;font-family:var(--ui);
   }
-  details.rules summary::-webkit-details-marker{display:none}
-  details.rules summary::marker{content:""}
-  details.rules summary:hover{background:rgba(239,233,220,.05);border-color:rgba(239,233,220,.3)}
-  details.rules summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .settings-ic{width:17px;height:17px;flex:none;color:rgba(239,233,220,.55)}
-  .settings-txt{
-    flex:1;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
-    color:rgba(239,233,220,.55);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .settings-txt b{
-    font-family:var(--ui);font-size:13px;font-weight:700;letter-spacing:0;
-    color:var(--bone);margin-right:2px;
-  }
-  .settings-chev{width:15px;height:15px;flex:none;color:rgba(239,233,220,.45)}
   @media (prefers-reduced-motion:no-preference){
-    .settings-chev{transition:transform .22s ease}
+    .schip{transition:border-color .15s,background .15s}
   }
-  details.rules[open] .settings-chev{transform:rotate(180deg)}
-  details.rules[open] summary{border-color:rgba(239,233,220,.3)}
-  #rules{padding-top:6px}
+  .schip:hover{background:rgba(239,233,220,.05);border-color:rgba(239,233,220,.3)}
+  .schip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .schip[aria-expanded="true"]{border-color:rgba(239,233,220,.3)}
+  .schip-ic{width:17px;height:17px;flex:none;color:rgba(239,233,220,.55)}
+  .schip-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .schip-txt b{font-size:13px;font-weight:700;color:var(--bone);letter-spacing:0}
+  .schip-sub{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    color:rgba(239,233,220,.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .schip-sub:empty{display:none}
+  .schip-chev{width:15px;height:15px;flex:none;color:rgba(239,233,220,.45)}
+  @media (prefers-reduced-motion:no-preference){
+    .schip-chev{transition:transform .22s ease}
+  }
+  .schip[aria-expanded="true"] .schip-chev{transform:rotate(180deg)}
+  .schip-chev.fixed{transform:none}
+
+  /* the 0fr -> 1fr grid row is what lets the page lengthen smoothly */
+  .disclosure{display:grid;grid-template-rows:0fr}
+  @media (prefers-reduced-motion:no-preference){
+    .disclosure{transition:grid-template-rows .3s ease}
+  }
+  .disclosure.open{grid-template-rows:1fr}
+  .disclosure-in{overflow:hidden;min-height:0}
+  .disclosure.open .disclosure-in{padding:4px 2px 2px}
+  .disclosure-note{
+    font-size:11.5px;line-height:1.5;color:rgba(239,233,220,.5);margin:6px 0 10px;
+  }
   .rule-item{display:flex;gap:11px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line-lt)}
   .rule-item:last-of-type{border-bottom:0}
   .rule-item input{margin-top:3px;accent-color:var(--gold);width:19px;height:19px;flex:none}
@@ -290,12 +307,12 @@
   .page-ref .ranks{flex:1;display:flex;flex-direction:column;justify-content:center}
   .pager-dots{display:flex;justify-content:center;gap:6px;margin-top:11px}
   .pager-dots b{
-    width:5px;height:5px;border-radius:50%;background:var(--bone);opacity:.28;
+    width:5px;height:5px;border-radius:50%;background:var(--bone);opacity:.16;
   }
   @media (prefers-reduced-motion:no-preference){
     .pager-dots b{transition:opacity .18s,transform .18s}
   }
-  .pager-dots b.on{opacity:1;transform:scale(1.15)}
+  .pager-dots b.on{opacity:.5;transform:scale(1.15)}
   /* in portrait the standalone ranks slide is redundant \u2014 it lives in the pager */
   .slide[data-slide="ranks"]{display:none}
 
@@ -372,7 +389,7 @@
      Section headings are dropped here; the dots carry the wayfinding. */
   @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
     body{padding:0;overflow:hidden}
-    .mast,details.rules,.colophon{display:none!important}
+    .mast,.settings,.colophon{display:none!important}
 
     main.wrap{
       max-width:none;margin:0;height:100vh;height:100dvh;padding:0;
@@ -690,21 +707,29 @@
     <section class="log" id="log"></section>
   </div>
 
-  <details class="rules">
-    <summary>
-      <svg class="settings-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.31.4.55.71.66H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-      <span class="settings-txt"><b>Settings</b><span id="settingsSummary"> \u00b7 2 sides</span></span>
-      <svg class="settings-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M6 9l6 6 6-6"/>
-      </svg>
-    </summary>
-    <div id="rules"></div>
-  </details>
+  <section class="settings">
+    <button class="schip" data-role="reset">
+      <svg class="schip-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 21v-6h6"/></svg>
+      <span class="schip-txt"><b>Start a new game</b><span class="schip-sub" id="newGameSub"></span></span>
+      <svg class="schip-chev fixed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+
+    <button class="schip" data-role="disclose" data-target="playersPanel"
+            aria-expanded="false" aria-controls="playersPanel">
+      <svg class="schip-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="schip-txt"><b>Player count</b><span class="schip-sub" id="playersSub"></span></span>
+      <svg class="schip-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="disclosure" id="playersPanel"><div class="disclosure-in" id="players"></div></div>
+
+    <button class="schip" data-role="disclose" data-target="rulesPanel"
+            aria-expanded="false" aria-controls="rulesPanel">
+      <svg class="schip-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.31.4.55.71.66H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="schip-txt"><b>House rules</b><span class="schip-sub" id="rulesSub"></span></span>
+      <svg class="schip-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="disclosure" id="rulesPanel"><div class="disclosure-in" id="rules"></div></div>
+  </section>
 
   <p class="colophon">SCORES ARE SAVED ON THIS DEVICE</p>
 </main>

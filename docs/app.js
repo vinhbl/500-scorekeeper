@@ -66,7 +66,7 @@
   var draft = blankDraft();
 
   function blankDraft(){
-    return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null};
+    return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null, scored:false};
   }
 
   function clearContract(){
@@ -499,6 +499,18 @@
     }, startCount);
   }
 
+
+  /* ---------- disclosure chips ----------
+     A grid row that animates from 0fr to 1fr, so the page lengthens and
+     shortens rather than snapping. */
+  function toggleDisclosure(btn){
+    var panel = $(btn.dataset.target);
+    if(!panel) return;
+    var open = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", open ? "false" : "true");
+    panel.classList.toggle("open", !open);
+  }
+
   /* ---------- rendering ---------- */
   function renderBoard(){
     var t = totals();
@@ -540,6 +552,10 @@
   }
 
   function renderBidTable(){
+    /* Once a hand is scored its auction is over, so the table clears \u2014 no
+       selection, nothing struck through \u2014 ready for the next bid. The record
+       panel is what still holds the hand that was just played. */
+    var standing = draft.scored ? null : draft.contract;
     var head = '<tr><th></th>' + SUITS.map(function(s){
       return '<th class="suit s-'+s.key+'">'+s.glyph+'</th>';
     }).join("") + '</tr>';
@@ -547,8 +563,8 @@
     var rows = LEVELS.map(function(lv){
       return '<tr><td class="lvl">'+lv+'</td>' + SUITS.map(function(s,si){
         var v = bidValue(lv,si);
-        var sel = draft.contract && draft.contract.type==="suit" && draft.contract.level===lv && draft.contract.suit===s.key;
-        var dead = !sel && outbid(v);
+        var sel = standing && standing.type==="suit" && standing.level===lv && standing.suit===s.key;
+        var dead = !sel && !draft.scored && outbid(v);
         return '<td><button class="cell c-'+s.key+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
           (dead?' disabled':'')+' '+
           'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
@@ -560,16 +576,15 @@
 
     var specs = [{id:"misere",label:"Mis\u00e8re",value:250},{id:"open",label:"Open mis\u00e8re",value:500}];
     $("specials").innerHTML = specs.map(function(sp){
-      var sel = draft.contract && draft.contract.type==="misere" && draft.contract.id===sp.id;
-      var dead = !sel && outbid(sp.value);
+      var sel = standing && standing.type==="misere" && standing.id===sp.id;
+      var dead = !sel && !draft.scored && outbid(sp.value);
       return '<button class="cell spec c-misere'+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
         (dead?' disabled':'')+' data-kind="misere" data-id="'+sp.id+'"'+
         ' aria-label="'+sp.label+', '+sp.value+' points'+(dead?', outbid':'')+'">'+
         sp.label+'<b>'+sp.value+'</b></button>';
     }).join("");
 
-    var note = $("bidNote");
-    if(note) note.textContent = draft.contract ? draft.contract.label + " stands" : "Avondale";
+
   }
 
   /* True once the bidder's side is settled. Until then "defender" has no
@@ -590,6 +605,7 @@
 
   function renderRecord(){
     var el = $("record");
+    var locked = !!draft.scored;
     var c = draft.contract;
 
     if(!c){
@@ -612,7 +628,7 @@
 
     html += '<div class="field"><span class="label">Who bid it</span><div class="chips">'+
       S.sides.map(function(sd,i){
-        return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'">'+esc(sd.name)+'</button>';
+        return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'"'+(locked?' disabled':'')+'>'+esc(sd.name)+'</button>';
       }).join("")+'</div></div>';
 
     /* Partner picker \u2014 five players only, and always visible. Hiding it until a
@@ -621,9 +637,9 @@
       html += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
         S.sides.map(function(sd,i){
           if(draft.bidder != null && i === draft.bidder) return "";
-          return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'">'+esc(sd.name)+'</button>';
+          return '<button class="chip" data-role="partner" data-i="'+i+'" aria-pressed="'+(draft.partner===i)+'"'+(locked?' disabled':'')+'>'+esc(sd.name)+'</button>';
         }).join("")+
-        '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'">Alone</button>'+
+        '<button class="chip alone" data-role="partner" data-i="-1" aria-pressed="'+(draft.partner===-1)+'"'+(locked?' disabled':'')+'>Alone</button>'+
         '</div><div class="tally">Whoever held the called card \u2014 or Alone if nobody did.</div></div>';
     }
 
@@ -634,7 +650,7 @@
       ? esc(bidderName) + " + " + esc(S.sides[decl[1]].name)
       : esc(bidderName);
     html += '<div class="field"><span class="label">Tricks won</span>'+
-      stepperRow(whoLabel, draft.tricks, "tricks", null, 0, 10);
+      stepperRow(whoLabel, draft.tricks, "tricks", null, 0, 10, false, locked);
     if(isMis) html += '<div class="tally">Mis\u00e8re is made only on zero tricks.</div>';
     html += '</div>';
 
@@ -650,13 +666,15 @@
         '<div class="remain'+(used===rem?' done':'')+'"><b>'+(rem-used)+'</b> of '+rem+' left to assign</div>';
       defenders.forEach(function(i){
         html += stepperRow(esc(S.sides[i].name), (draft.defSplit && draft.defSplit[i]) || 0,
-                           "split", i, 0, rem, used >= rem);
+                           "split", i, 0, rem, used >= rem, locked);
       });
       html += '</div>';
     }
 
     var ready = readyToScore();
-    html += '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
+    html += draft.scored
+      ? '<button class="submit undo" id="undoBtn">Undo this hand</button>'
+      : '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
     if(ready){
       var d = scoreHand(buildHand());
       html += '<div class="preview">'+S.sides.map(function(sd,i){
@@ -669,8 +687,12 @@
 
   /* name on the left, minus / value / plus on the right \u2014 one row per number,
      so the control is the same shape whether there are two players or five */
-  function stepperRow(name, value, role, side, min, max, plusOff){
+  function stepperRow(name, value, role, side, min, max, plusOff, locked){
     var sideAttr = side==null ? "" : ' data-side="'+side+'"';
+    if(locked){
+      return '<div class="srow"><span class="srow-name">'+name+'</span>'+
+        '<span class="stepper"><span class="step-val">'+value+'</span></span></div>';
+    }
     return '<div class="srow">'+
       '<span class="srow-name">'+name+'</span>'+
       '<span class="stepper">'+
@@ -752,32 +774,47 @@
     }).join("");
   }
 
-  function renderRules(){
+  /* The table is described in players, not sides \u2014 "2 sides" meant four people
+     at the table, which nobody says out loud. Internally seats stays 2/3/5. */
+  var PLAYER_COUNT = {2:4, 3:3, 5:5};
+  function playerLabel(seats){ return PLAYER_COUNT[seats] + "-player"; }
+
+  function rulesAreDefault(){
+    return RULES.every(function(r){ return S.rules[r.key] === DEFAULT_RULES[r.key]; });
+  }
+
+  function renderPlayers(){
     var locked = S.hands.length > 0;
-    var html = visibleRules().map(function(r){
+    var html = '<p class="disclosure-note">'+(locked
+      ? "Locked while a game is in progress \u2014 start a new game to change it."
+      : "Four players in fixed partnerships, three cutthroat, or five with a called partner.")+'</p>'+
+      '<div class="seat-toggle">'+
+        [2,3,5].map(function(k){
+          return '<button class="chip" data-role="seats" data-i="'+k+'" aria-pressed="'+(S.game.seats===k)+'"'+
+            (locked?' disabled':'')+'>'+playerLabel(k)+'</button>';
+        }).join("")+
+      '</div>';
+    $("players").innerHTML = html;
+
+    var sub = $("playersSub");
+    if(sub) sub.textContent = playerLabel(S.game.seats) + " mode";
+  }
+
+  function renderRules(){
+    $("rules").innerHTML = visibleRules().map(function(r){
       return '<label class="rule-item"><input type="checkbox" data-rule="'+r.key+'"'+(S.rules[r.key]?' checked':'')+'>'+
         '<div>'+r.label+'<small>'+r.note+'</small></div></label>';
     }).join("");
 
-    html += '<div class="rule-item"><div style="flex:1">Players at the table'+
-      '<small>'+(locked
-        ? 'Locked while a game is in progress \u2014 start a new game to change it.'
-        : 'Two sides for partnership play, three for cutthroat, five for called partners.')+'</small>'+
-      '<div class="seat-toggle">'+
-        [2,3,5].map(function(k){
-          return '<button class="chip" data-role="seats" data-i="'+k+'" aria-pressed="'+(S.game.seats===k)+'"'+
-            (locked?' disabled':'')+'>'+k+(k===2?' sides':' players')+'</button>';
-        }).join("")+
-      '</div></div></div>';
+    var sub = $("rulesSub");
+    if(sub) sub.textContent = rulesAreDefault() ? "Default" : "Custom";
 
-    html += '<button class="danger" data-role="reset">Start a new game</button>';
-    $("rules").innerHTML = html;
-
-    var sum = $("settingsSummary");
-    if(sum) sum.textContent = " \u00b7 " + S.game.seats + (S.game.seats === 2 ? " sides" : " players");
+    var ng = $("newGameSub");
+    if(ng) ng.textContent = S.hands.length ? "Current game in progress" : "";
   }
 
-  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderReference(); renderLog(); renderRules(); }
+
+  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderReference(); renderLog(); renderPlayers(); renderRules(); }
 
   /* ---------- events ---------- */
   document.addEventListener("click", function(e){
@@ -797,7 +834,7 @@
       }
       if(outbid(v)) return;
       draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
-      draft.tricks = seedTricks(draft.contract); draft.defSplit = null;
+      draft.tricks = seedTricks(draft.contract); draft.defSplit = null; draft.scored = false;
       renderBidTable(); renderRecord(); renderReference(); return;
     }
     if(b.dataset.kind === "misere"){
@@ -810,7 +847,7 @@
       draft.contract = {type:"misere", id:id,
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
         value: mv};
-      draft.tricks = seedTricks(draft.contract); draft.defSplit = null;
+      draft.tricks = seedTricks(draft.contract); draft.defSplit = null; draft.scored = false;
       renderBidTable(); renderRecord(); renderReference(); return;
     }
 
@@ -848,9 +885,21 @@
       if(!readyToScore()) return;
       var before = totals();
       S.hands.push(buildHand());
-      draft = blankDraft();
+      /* the hand stays on screen so it can be undone at a glance; it is
+         replaced the moment the next bid is picked */
+      draft.scored = true;
       save(); renderAll();
       celebrateScore(before, totals());
+      return;
+    }
+    if(role === "disclose"){ toggleDisclosure(b); return; }
+    if(b.id === "undoBtn"){
+      if(!S.hands.length) return;
+      var was = totals();
+      S.hands.pop();
+      draft.scored = false;
+      save(); renderAll();
+      celebrateScore(was, totals());
       return;
     }
     if(role === "undo"){ S.hands.pop(); save(); renderAll(); return; }

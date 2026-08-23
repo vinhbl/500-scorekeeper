@@ -8,6 +8,21 @@ Parked items, to prioritize and cut later. Committed work is tracked separately:
 
 ---
 
+### Six-handed play
+Scoring is identical to four-handed — two sides, fixed partnerships — so the score sheet would
+need no change. The **card ranks reference would be wrong**, which is why it is not offered.
+
+Six-handed uses a 63-card deck: a full pack plus 11s and 12s in every suit, red 13s, and the joker.
+So the trump ladder gains 13, 12, 11 between the queen and the ten, and only the red suits have a
+13 — black trump and red trump run to different lengths for the first time.
+
+There is also a modelling problem: the app stores **sides**, not players, so four-handed and
+six-handed are both `seats: 2`. Telling them apart needs a new field and a v2 -> v3 migration.
+
+*To do it properly:* add `game.players`, migrate existing games to 4/3/5 from their seat count,
+extend `rankCards()` and `deckTail()` to read it, and add a six-player option that maps to
+`seats: 2`.
+
 ## Carousel follow-ups
 
 ### Swipe affordance
