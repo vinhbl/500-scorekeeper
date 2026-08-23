@@ -152,34 +152,38 @@
   .cell.spec b{font-family:var(--mono);font-weight:500;opacity:.6;margin-left:6px}
 
   /* ---------- record hand ---------- */
-  .panel{background:var(--bone);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:14px}
+  /* Record a hand is app chrome, not part of the score sheet, so it sits on the
+     navy ground. The rank reference reuses .panel but is reference material \u2014
+     .ref puts it back on bone, where its chips are drawn to live. */
+  .panel{background:var(--ink-2);color:var(--bone);border:1px solid var(--line-lt);border-radius:3px;padding:14px}
+  .panel.ref{background:var(--bone);color:var(--ink);border-color:var(--line)}
   .panel.idle{opacity:.55}
   .contract-line{font-family:var(--disp);font-size:24px;margin:0 0 14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .contract-line .val{font-family:var(--mono);font-size:13px;color:var(--gold);letter-spacing:.06em}
   .field{margin-bottom:14px}
   .label{
     font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-    color:rgba(14,26,43,.5);display:block;margin-bottom:7px;
+    color:rgba(239,233,220,.5);display:block;margin-bottom:7px;
   }
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chip{
-    background:transparent;color:var(--ink);border:1px solid var(--line);
+    background:transparent;color:var(--bone);border:1px solid var(--line-lt);
     border-radius:2px;padding:11px 14px;font-size:13px;font-weight:500;
     cursor:pointer;transition:background .12s,color .12s;
   }
-  .chip:hover{background:rgba(14,26,43,.06)}
+  .chip:hover{background:rgba(239,233,220,.08)}
   .chip:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
-  .chip[aria-pressed="true"]{background:var(--ink);color:var(--bone);border-color:var(--ink);font-weight:600}
+  .chip[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone);font-weight:600}
   .chip.num{font-family:var(--mono);min-width:42px;padding:11px 0;text-align:center;flex:1}
-  .tally{font-family:var(--mono);font-size:11px;color:rgba(14,26,43,.5);margin-top:8px}
-  .tally.bad{color:var(--red)}
+  .tally{font-family:var(--mono);font-size:11px;color:rgba(239,233,220,.45);margin-top:8px}
+  .tally.bad{color:var(--gold)}
   .submit{
     width:100%;padding:16px;border:0;border-radius:2px;background:var(--gold);color:var(--ink);
     font-weight:700;font-size:14px;letter-spacing:.04em;cursor:pointer;
   }
-  .submit:disabled{background:rgba(14,26,43,.10);color:rgba(14,26,43,.35);cursor:not-allowed}
-  .submit:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-  .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(14,26,43,.6)}
+  .submit:disabled{background:rgba(239,233,220,.14);color:rgba(239,233,220,.35);cursor:not-allowed}
+  .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+  .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(239,233,220,.6)}
 
   /* ---------- log ---------- */
   .log{background:var(--bone);color:var(--ink);border-radius:3px;overflow:hidden}
@@ -268,6 +272,9 @@
      so swiping never changes the height of the page you are reading. */
   .pager{
     display:flex;overflow-x:auto;overflow-y:hidden;
+    /* the gap only shows while the swipe is in flight \u2014 each page still fills
+       the width once it snaps, so the settled position is unchanged */
+    gap:14px;
     scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
     scrollbar-width:none;
   }
@@ -277,11 +284,13 @@
     display:flex;flex-direction:column;
   }
   .page > section{flex:1}
-  /* the reference is shorter than the grid, so it sits centred in the slack */
-  .page-ref > section{flex:none;margin:auto 0}
-  .pager-dots{display:flex;justify-content:center;gap:7px;margin-top:11px}
+  /* the reference stretches to the bid table's height and distributes inside,
+     so the two pages are the same object at the same size */
+  .page-ref > section{flex:1;display:flex;flex-direction:column;min-height:0}
+  .page-ref .ranks{flex:1;display:flex;flex-direction:column;justify-content:center}
+  .pager-dots{display:flex;justify-content:center;gap:6px;margin-top:11px}
   .pager-dots b{
-    width:7px;height:7px;border-radius:50%;background:var(--bone);opacity:.28;
+    width:5px;height:5px;border-radius:50%;background:var(--bone);opacity:.28;
   }
   @media (prefers-reduced-motion:no-preference){
     .pager-dots b{transition:opacity .18s,transform .18s}
@@ -530,18 +539,18 @@
      landscape slide without scrolling. */
   .srow{
     display:flex;align-items:center;gap:10px;
-    padding:8px 0;border-bottom:1px solid var(--line);
+    padding:8px 0;border-bottom:1px solid var(--line-lt);
   }
   .srow:last-child{border-bottom:0}
   .srow-name{flex:1;font-size:14px;font-weight:600;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .stepper{display:flex;align-items:center;gap:9px;flex:none}
   .step{
-    width:34px;height:34px;border-radius:3px;border:1px solid var(--line);
-    background:transparent;color:var(--ink);font-family:var(--ui);font-size:17px;
+    width:34px;height:34px;border-radius:3px;border:1px solid var(--line-lt);
+    background:transparent;color:var(--bone);font-family:var(--ui);font-size:17px;
     line-height:1;cursor:pointer;transition:background .12s;
   }
-  .step:hover{background:rgba(14,26,43,.06)}
+  .step:hover{background:rgba(239,233,220,.08)}
   .step:disabled{opacity:.28;cursor:not-allowed}
   .step:disabled:hover{background:transparent}
   .step:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
@@ -549,8 +558,8 @@
     font-family:var(--mono);font-size:20px;font-weight:600;
     min-width:26px;text-align:center;font-variant-numeric:tabular-nums;
   }
-  .remain{font-family:var(--mono);font-size:11px;color:rgba(14,26,43,.5);margin-bottom:4px}
-  .remain b{color:var(--ink);font-weight:600}
+  .remain{font-family:var(--mono);font-size:11px;color:rgba(239,233,220,.45);margin-bottom:4px}
+  .remain b{color:var(--bone);font-weight:600}
   .remain.done{color:var(--gold)}
 
   /* The record panel's two columns exist only for landscape. display:contents
@@ -559,7 +568,7 @@
 
   .split-row{margin-bottom:9px}
   .split-name{
-    display:block;font-size:12px;color:rgba(14,26,43,.72);
+    display:block;font-size:12px;color:rgba(239,233,220,.72);
     margin-bottom:6px;font-weight:500;
   }
 

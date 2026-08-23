@@ -472,40 +472,44 @@ group("round reference");
   eq(w.getComputedStyle(cards).display, "flex", "the ladder is a flex row");
 }
 
-/* ---- every content section sits on bone ----
-   The record panel was the last surface on ink, which left its chips and the
-   rank ladder drawn with the wrong half of the palette.
-   jsdom drops `background:var(...)` but keeps `color:var(...)` verbatim, so
-   assert the text colour \u2014 which is what says which ground a surface is drawn
-   for anyway. */
+/* ---- which ground each surface is drawn for ----
+   The score sheet is on bone: bid table, card ranks, hands played, score cards.
+   Record a hand is app chrome and sits on navy, so its children use the on-ink
+   half of the palette. jsdom drops `background:var(...)` but keeps
+   `color:var(...)` verbatim, so the text colour is what we assert. */
 {
   const { d, w } = boot();
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 0));
-  const ink = function(sel){ return w.getComputedStyle(d.querySelector(sel)).color === "var(--ink)"; };
-  ok(ink("#record"),    "the record panel is drawn for bone");
-  ok(ink("#reference"), "the card ranks panel is drawn for bone");
-  ok(ink(".sheet"),     "the bid table is drawn for bone");
-  ok(ink(".log"),       "the hands played log is drawn for bone");
-  ok(ink(".side"),      "the score cards are drawn for bone");
-  ok(ink(String.raw`#record .chip[aria-pressed="false"]`), "unselected chips are ink on bone");
+  const col = function(sel){ return w.getComputedStyle(d.querySelector(sel)).color; };
 
-  /* selected chips invert rather than lightening */
-  const sel = d.querySelector('#record .chip[aria-pressed="true"]');
-  ok(sel, "a chip is selected");
-  eq(w.getComputedStyle(sel).color, "var(--bone)", "selected chips invert to bone on ink");
+  eq(col(".sheet"),         "var(--ink)",  "the bid table is drawn for bone");
+  eq(col("#referencePage"), "var(--ink)",  "so is the card ranks reference");
+  eq(col("#reference"),     "var(--ink)",  "including its landscape mount");
+  eq(col(".log"),           "var(--ink)",  "and the hands played log");
+  eq(col(".side"),          "var(--ink)",  "and the score cards");
+
+  eq(col("#record"),        "var(--bone)", "record a hand is drawn for navy");
+  eq(col(String.raw`#record .chip[aria-pressed="false"]`), "var(--bone)",
+     "its unselected chips are bone on navy");
+  eq(col(String.raw`#record .chip[aria-pressed="true"]`),  "var(--ink)",
+     "and selected chips invert to ink on bone");
+  eq(col("#record .step"),  "var(--bone)", "its steppers match");
 }
 
-/* nothing inside a bone section may reach for the on-ink half of the palette */
+/* the reference reuses .panel, so it must keep overriding back to bone */
 {
   const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
-  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
-  const panelBlock = css.slice(css.indexOf("  .panel{"), css.indexOf("  /* ---------- log ---------- */"));
-  const strays = panelBlock.split("\n").filter(function(l){
-    return /239,\s*233,\s*220/.test(l) && !/aria-pressed|\.panel\{/.test(l);
-  });
-  eq(strays, [], "no on-ink colours left among the record panel's children");
+  ok(/\.panel\{background:var\(--ink-2\)/.test(src), ".panel is navy by default");
+  ok(/\.panel\.ref\{background:var\(--bone\)/.test(src),
+     "and .ref puts the reference back on bone \u2014 its chips are drawn for it");
+  ok(/\.pager\{[\s\S]*?gap:14px/.test(src),
+     "a gap separates the pages mid-swipe without moving where they settle");
+  ok(/\.page-ref > section\{flex:1/.test(src),
+     "the reference stretches to the bid table's height rather than floating");
+  ok(/\.pager-dots b\{[\s\S]*?width:5px;height:5px/.test(src), "the bullets are smaller");
 }
+
 
 /* ================= landscape carousel dots ================= */
 group("carousel dots");
