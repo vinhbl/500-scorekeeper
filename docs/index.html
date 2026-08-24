@@ -178,13 +178,15 @@
   .tally{font-family:var(--mono);font-size:11px;color:rgba(239,233,220,.45);margin-top:8px}
   .tally.bad{color:var(--gold)}
   .submit{
-    width:100%;padding:16px;border:0;border-radius:2px;background:var(--gold);color:var(--ink);
+    width:100%;padding:16px;border-radius:2px;background:var(--gold);color:var(--ink);
     font-weight:700;font-size:14px;letter-spacing:.04em;cursor:pointer;
+    /* a transparent border keeps the box identical to the outlined Undo state */
+    border:1px solid transparent;
   }
   .submit:disabled{background:rgba(239,233,220,.14);color:rgba(239,233,220,.35);cursor:not-allowed}
   .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   .submit.undo{
-    background:transparent;color:rgba(239,233,220,.75);border:1px solid var(--line-lt);
+    background:transparent;color:rgba(239,233,220,.75);border-color:var(--line-lt);
   }
   .submit.undo:hover{background:rgba(239,233,220,.06);color:var(--bone)}
   .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(239,233,220,.6)}
@@ -216,26 +218,36 @@
   /* ---- settings chips ----
      Three ways in, each stating its current state so a mid-game question is
      often answered without opening anything. */
-  .settings{margin-top:28px;display:flex;flex-direction:column;gap:9px}
+  /* No flex gap here \u2014 a collapsed disclosure is still a flex child, so a gap
+     would double the space around any chip that has one. Margin on the chips
+     keeps every interval identical whether a panel is open or shut. */
+  .settings{margin-top:28px;display:flex;flex-direction:column}
   .schip{
-    display:flex;align-items:center;gap:11px;width:100%;
+    display:flex;align-items:center;gap:11px;width:100%;margin-top:9px;
     padding:12px 15px;border:1px solid var(--line-lt);border-radius:999px;
     background:transparent;cursor:pointer;text-align:left;font-family:var(--ui);
   }
   @media (prefers-reduced-motion:no-preference){
     .schip{transition:border-color .15s,background .15s}
   }
+  .schip:first-child{margin-top:0}
   .schip:hover{background:rgba(239,233,220,.05);border-color:rgba(239,233,220,.3)}
   .schip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .schip[aria-expanded="true"]{border-color:rgba(239,233,220,.3)}
   .schip-ic{width:17px;height:17px;flex:none;color:rgba(239,233,220,.55)}
-  .schip-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .schip-txt b{font-size:13px;font-weight:700;color:var(--bone);letter-spacing:0}
-  .schip-sub{
-    font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
-    color:rgba(239,233,220,.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  /* one line, always \u2014 the label and its state share a row and clip with an
+     ellipsis rather than wrapping and changing the chip's height */
+  .schip-txt{
+    flex:1;min-width:0;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
+    color:rgba(239,233,220,.55);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .schip-txt b{
+    font-family:var(--ui);font-size:13px;font-weight:700;letter-spacing:0;
+    color:var(--bone);margin-right:2px;
   }
   .schip-sub:empty{display:none}
+  .schip-sub:not(:empty)::before{content:" \00b7 "}
   .schip-chev{width:15px;height:15px;flex:none;color:rgba(239,233,220,.45)}
   @media (prefers-reduced-motion:no-preference){
     .schip-chev{transition:transform .22s ease}
@@ -710,7 +722,7 @@
   <section class="settings">
     <button class="schip" data-role="reset">
       <svg class="schip-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 21v-6h6"/></svg>
-      <span class="schip-txt"><b>Start a new game</b><span class="schip-sub" id="newGameSub"></span></span>
+      <span class="schip-txt"><b>New game</b><span class="schip-sub" id="newGameSub"></span></span>
       <svg class="schip-chev fixed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
 

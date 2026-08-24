@@ -23,8 +23,9 @@
      note:"Off means only the bidding side ever scores."},
     {key:"slam",      seats:[2,3,5], rescorable:true,  label:"All ten tricks pays 250 minimum",
      note:"The standard slam bonus on a bid worth less than 250."},
-    {key:"misereDef", seats:[2,3,5], rescorable:true,  label:"Defenders score during a mis\u00e8re",
-     note:"Most tables play that they don't."},
+    {key:"misereNoDef", seats:[2,3,5], rescorable:true,
+     label:"Defenders do not score during a mis\u00e8re",
+     note:"How most tables play it. Off means defenders keep their tricks."},
     {key:"defShare",  seats:[3,5],   rescorable:true,  label:"Each defender scores the whole team's tricks",
      note:"Off means each defender scores only the tricks they took."},
     {key:"winOnBid",  seats:[2,3,5], rescorable:false, label:"You must be the bidder to win",
@@ -40,7 +41,7 @@
   };
 
   var DEFAULT_RULES = {
-    defTricks:true, slam:true, misereDef:false,
+    defTricks:true, slam:true, misereNoDef:true,
     /* Off by default: the documented rule in every source is that each defender
        scores only the tricks they personally took. Tables that pool defensive
        tricks turn this on. */
@@ -143,18 +144,30 @@
     };
   }
 
+  /* misereDef ("defenders score") became misereNoDef ("they do not"), so every
+     rule now defaults to on. Flip any stored value, including the frozen copy
+     on each hand \u2014 otherwise a rescore would use the wrong sense. */
+  function migrateMisere(r){
+    if(!r) return r;
+    if(typeof r.misereNoDef === "undefined" && typeof r.misereDef !== "undefined"){
+      r.misereNoDef = !r.misereDef;
+    }
+    delete r.misereDef;
+    return r;
+  }
+
   function validate(s){
     if(!s.game || !Array.isArray(s.sides) || !Array.isArray(s.hands)) return false;
     if([2,3,5].indexOf(s.game.seats) < 0) return false;
     if(s.sides.length !== s.game.seats) return false;
-    s.rules = Object.assign(clone(DEFAULT_RULES), s.rules || {});
+    s.rules = Object.assign(clone(DEFAULT_RULES), migrateMisere(s.rules) || {});
     for(var i=0;i<s.hands.length;i++){
       var h = s.hands[i];
       if(!h || !h.contract || typeof h.bidder !== "number") return false;
       if(!Array.isArray(h.declaring)) h.declaring = [h.bidder];
       if(!Array.isArray(h.trickSplit)) h.trickSplit = new Array(s.game.seats).fill(0);
       if(!Array.isArray(h.delta) || h.delta.length !== s.game.seats) h.delta = scoreHandWith(h, s.rules, s.game.seats);
-      if(!h.scoredUnder) h.scoredUnder = clone(s.rules);
+      if(!h.scoredUnder) h.scoredUnder = clone(s.rules); else migrateMisere(h.scoredUnder);
       if(!h.id) h.id = newId("h");
     }
     return true;
@@ -178,7 +191,7 @@
     }
     decl.forEach(function(i){ if(i>=0 && i<n) d[i] = pts; });
 
-    var defScoring = isMis ? rules.misereDef : rules.defTricks;
+    var defScoring = isMis ? !rules.misereNoDef : rules.defTricks;
     if(defScoring){
       var defTotal = 0, i;
       for(i=0;i<n;i++){ if(decl.indexOf(i) < 0) defTotal += (h.trickSplit[i]||0); }
@@ -655,7 +668,7 @@
     html += '</div>';
 
     /* defender split — needed when more than one defender exists and defenders score */
-    var scoringDef = isMis ? S.rules.misereDef : S.rules.defTricks;
+    var scoringDef = isMis ? !S.rules.misereNoDef : S.rules.defTricks;
     var defenders = [];
     S.sides.forEach(function(_,i){ if(decl.indexOf(i) < 0) defenders.push(i); });
 
@@ -737,7 +750,7 @@
     var defenders = [];
     S.sides.forEach(function(_,i){ if(decl.indexOf(i) < 0) defenders.push(i); });
     if(defenders.length <= 1) return true;
-    var scoring = draft.contract.type === "misere" ? S.rules.misereDef : S.rules.defTricks;
+    var scoring = draft.contract.type === "misere" ? !S.rules.misereNoDef : S.rules.defTricks;
     if(!scoring) return true;
     var rem = 10 - draft.tricks, used = 0;
     defenders.forEach(function(i){ used += (draft.defSplit && draft.defSplit[i])||0; });
@@ -789,7 +802,7 @@
       ? "Locked while a game is in progress \u2014 start a new game to change it."
       : "Four players in fixed partnerships, three cutthroat, or five with a called partner.")+'</p>'+
       '<div class="seat-toggle">'+
-        [2,3,5].map(function(k){
+        [3,2,5].map(function(k){
           return '<button class="chip" data-role="seats" data-i="'+k+'" aria-pressed="'+(S.game.seats===k)+'"'+
             (locked?' disabled':'')+'>'+playerLabel(k)+'</button>';
         }).join("")+

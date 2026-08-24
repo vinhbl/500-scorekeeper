@@ -90,8 +90,10 @@ eq(API.scoreHandWith(hand({contract:mis(), tricks:0, trickSplit:[0,10]}), R(), 2
 eq(API.scoreHandWith(hand({contract:mis(), tricks:1, trickSplit:[0,9]}), R(), 2),
    [-250,0], "misère broken on one trick");
 
-eq(API.scoreHandWith(hand({contract:mis(), tricks:0, trickSplit:[0,10]}), R({misereDef:true}), 2),
-   [250,100], "misereDef on — defenders score their tricks");
+eq(API.scoreHandWith(hand({contract:mis(), tricks:0, trickSplit:[0,10]}), R({misereNoDef:false}), 2),
+   [250,100], "misereNoDef off — defenders keep their misère tricks");
+eq(API.scoreHandWith(hand({contract:mis(), tricks:0, trickSplit:[0,10]}), R({misereNoDef:true}), 2),
+   [250,0], "misereNoDef on (the default) — defenders score nothing");
 
 eq(API.scoreHandWith(hand({contract:open(), tricks:0, trickSplit:[0,10]}), R(), 2),
    [500,0], "open misère pays 500");
@@ -144,7 +146,7 @@ group("migration v1 -> v2");
 
 const v1 = {
   sides:[{name:"Us"},{name:"Them"}],
-  rules:{defTricks:true, slam:true, misereDef:false, winOnBid:true, backDoor:true},
+  rules:{defTricks:true, slam:true, misereNoDef:true, winOnBid:true, backDoor:true},
   hands:[
     {contract:suit(7,140), bidder:0, tricks:7, defSplit:[0,3], delta:[140,30]},
     {contract:suit(8,240), bidder:1, tricks:6, defSplit:[4,0], delta:[40,-240]}
@@ -196,7 +198,7 @@ eq(byKey("defShare").seats, [3,5], "defShare hidden at 2 sides, shown at 3 and 5
 eq(byKey("winOnBid").rescorable, false, "winOnBid is a win condition, not a scoring rule");
 eq(byKey("backDoor").rescorable, false, "backDoor is a loss condition, not a scoring rule");
 eq(API.RULES.filter(r=>r.rescorable).map(r=>r.key),
-   ["defTricks","slam","misereDef","defShare"], "exactly four rules can rescore");
+   ["defTricks","slam","misereNoDef","defShare"], "exactly four rules can rescore");
 
 console.log("\n" + pass + " passed, " + fail + " failed\n");
 process.exit(fail ? 1 : 0);

@@ -209,12 +209,13 @@ group("dry run suppresses pointless prompts");
   setTricks(d, 7);
   click(d, "#scoreBtn");
 
-  // no misère was bid, so flipping misereDef cannot change any delta
-  const box = d.querySelector('[data-rule="misereDef"]');
-  box.checked = true;
+  // no misère was bid, so flipping the misère rule cannot change any delta
+  const box = d.querySelector('[data-rule="misereNoDef"]');
+  ok(box.checked, "the misere rule ships on, like every other default");
+  box.checked = false;                       // turning a default off
   box.dispatchEvent(new d.defaultView.Event("change", {bubbles:true}));
   ok(d.querySelector("#dialog").hidden, "no prompt for a rule with no effect on played hands");
-  eq(API.state().rules.misereDef, true, "rule still applies");
+  eq(API.state().rules.misereNoDef, false, "the toggle still writes through");
 
   // win conditions never prompt
   const wb = d.querySelector('[data-rule="winOnBid"]');
@@ -229,7 +230,7 @@ group("migration on load");
 {
   const v1 = JSON.stringify({
     sides:[{name:"Ellis"},{name:"Ren"}],
-    rules:{defTricks:true, slam:true, misereDef:false, winOnBid:true, backDoor:true},
+    rules:{defTricks:true, slam:true, misereNoDef:true, winOnBid:true, backDoor:true},
     hands:[{contract:{type:"suit",level:7,suit:"hearts",label:"7 \u2665",value:200},
             bidder:0, tricks:8, defSplit:[0,2], delta:[200,20]}]
   });
@@ -718,7 +719,7 @@ group("settings");
 {
   const { d } = boot();
   eq([...d.querySelectorAll(".schip-txt b")].map(b => b.textContent),
-     ["Start a new game", "Player count", "House rules"], "three chips, in order");
+     ["New game", "Player count", "House rules"], "three chips, in order");
   eq(d.getElementById("newGameSub").textContent, "", "no game yet, so no status line");
   eq(d.getElementById("playersSub").textContent, "4-player mode", "the table is described in players");
   eq(d.getElementById("rulesSub").textContent, "Default", "and the rules start untouched");
@@ -726,7 +727,8 @@ group("settings");
 {
   const { d } = boot();
   eq([...d.querySelectorAll('[data-role="seats"]')].map(b => b.textContent),
-     ["4-player", "3-player", "5-player"], "two sides now reads as four players");
+     ["3-player", "4-player", "5-player"],
+     "player counts run in table order, and two sides now reads as four players");
   click(d, chip(d, "seats", 5));
   eq(d.getElementById("playersSub").textContent, "5-player mode", "the subtitle follows the choice");
 }
@@ -807,6 +809,34 @@ group("settings");
   eq(d.querySelector("#record .submit").textContent, "Score this hand",
      "picking the next bid replaces the recorded hand");
   ok(d.querySelector("#record .contract-line").textContent.indexOf("380") > -1, "with the new contract");
+}
+
+/* ---- chip layout: one line, even spacing, matching buttons ---- */
+{
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  ok(/\.schip-txt\{[^}]*white-space:nowrap/.test(src),
+     "the label and its state share one line");
+  ok(/\.schip-txt\{[^}]*text-overflow:ellipsis/.test(src),
+     "and clip rather than wrapping, so chip height never changes");
+  ok(/\.schip-sub:not\(:empty\)::before\{content:" \\00b7 "\}/.test(src),
+     "a dot separates them, and disappears when there is no state to show");
+  ok(!/\.settings\{[^}]*gap:/.test(src),
+     "no flex gap on the container \u2014 a collapsed panel would double the spacing");
+  ok(/\.schip\{[^}]*margin-top:9px/.test(src), "the chips space themselves evenly instead");
+  ok(/\.submit\{[^}]*border:1px solid transparent/.test(src),
+     "the score button reserves a border so Undo is exactly the same height");
+  ok(/\.submit\.undo\{[^}]*border-color:var\(--line-lt\)/.test(src),
+     "Undo only recolours that border rather than adding one");
+}
+
+/* every rule ships on, so the panel reads as a list of things you can turn off */
+{
+  const { d, API } = boot();
+  click(d, chip(d, "seats", 5));
+  const boxes = [...d.querySelectorAll("#rules input")];
+  const off = boxes.filter(function(b){ return !b.checked; }).map(function(b){ return b.dataset.rule; });
+  eq(off, ["defShare"],
+     "defShare is the one default still off \u2014 every other rule ships enabled");
 }
 
 /* a full hand still records, with no confirm step in the way */
