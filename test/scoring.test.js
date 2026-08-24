@@ -104,41 +104,41 @@ eq(API.scoreHandWith(hand({contract:mis(), tricks:0, trickSplit:[0,10]}), R({sla
 /* ================= 3-player cutthroat ================= */
 group("3 players — cutthroat");
 
-eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0], trickSplit:[0,1,1]}), R({defShare:false}), 3),
-   [240,10,10], "defShare off — each defender scores only their own tricks");
+eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0], trickSplit:[0,1,1]}), R({defIndividual:true}), 3),
+   [240,10,10], "defIndividual on — each defender scores only their own tricks");
 
-eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0], trickSplit:[0,1,1]}), R({defShare:true}), 3),
-   [240,20,20], "defShare on — each defender scores the team's two tricks");
+eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0], trickSplit:[0,1,1]}), R({defIndividual:false}), 3),
+   [240,20,20], "defIndividual off — each defender scores the team's two tricks");
 
-eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:6, declaring:[0], trickSplit:[0,3,1]}), R({defShare:false}), 3),
+eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:6, declaring:[0], trickSplit:[0,3,1]}), R({defIndividual:true}), 3),
    [-240,30,10], "failed bid, defenders keep their own tricks");
 
 /* ================= 5-player ================= */
 group("5 players — called partners");
 
-eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0,2], trickSplit:[0,1,0,1,0]}), R({defShare:false}), 5),
+eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0,2], trickSplit:[0,1,0,1,0]}), R({defIndividual:true}), 5),
    [240,10,240,10,0], "bidder and partner both take the contract value");
 
-eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0,2], trickSplit:[0,1,0,1,0]}), R({defShare:true}), 5),
-   [240,20,240,20,20], "defShare on — all three defenders score the team's tricks");
+eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:8, declaring:[0,2], trickSplit:[0,1,0,1,0]}), R({defIndividual:false}), 5),
+   [240,20,240,20,20], "defIndividual off — all three defenders score the team's tricks");
 
-eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:6, declaring:[0,2], trickSplit:[0,2,0,1,1]}), R({defShare:false}), 5),
+eq(API.scoreHandWith(hand({contract:suit(8,240), tricks:6, declaring:[0,2], trickSplit:[0,2,0,1,1]}), R({defIndividual:true}), 5),
    [-240,20,-240,10,10], "failed bid costs bidder and partner alike");
 
-eq(API.scoreHandWith(hand({contract:suit(9,340), tricks:9, declaring:[3], trickSplit:[0,1,0,0,0]}), R({defShare:false}), 5),
+eq(API.scoreHandWith(hand({contract:suit(9,340), tricks:9, declaring:[3], trickSplit:[0,1,0,0,0]}), R({defIndividual:true}), 5),
    [0,10,0,340,0], "bidder alone — declaring is a single seat");
 
-eq(API.scoreHandWith(hand({contract:suit(9,340), tricks:9, declaring:[3], trickSplit:[1,0,0,0,0]}), R({defShare:true}), 5),
-   [10,10,10,340,10], "alone with defShare — four defenders share the one trick");
+eq(API.scoreHandWith(hand({contract:suit(9,340), tricks:9, declaring:[3], trickSplit:[1,0,0,0,0]}), R({defIndividual:false}), 5),
+   [10,10,10,340,10], "alone, scoring together — four defenders share the one trick");
 
 eq(API.scoreHandWith(hand({contract:suit(6,40), tricks:10, declaring:[1,4], trickSplit:[0,0,0,0,0]}), R(), 5),
    [0,250,0,0,250], "slam floor applies to both declaring seats");
 
-/* ================= defShare degenerates at 2 sides ================= */
-group("defShare is inert with a single defender");
+/* ================= the rule degenerates at 2 sides ================= */
+group("defIndividual is inert with a single defender");
 
-eq(API.scoreHandWith(hand({contract:suit(7,140), tricks:7, trickSplit:[0,3]}), R({defShare:true}), 2),
-   API.scoreHandWith(hand({contract:suit(7,140), tricks:7, trickSplit:[0,3]}), R({defShare:false}), 2),
+eq(API.scoreHandWith(hand({contract:suit(7,140), tricks:7, trickSplit:[0,3]}), R({defIndividual:false}), 2),
+   API.scoreHandWith(hand({contract:suit(7,140), tricks:7, trickSplit:[0,3]}), R({defIndividual:true}), 2),
    "same result either way when only one defender exists");
 
 /* ================= migration ================= */
@@ -161,7 +161,8 @@ eq(m.sides.every(s=>!!s.id), true, "assigns stable side ids");
 eq(m.hands.map(h=>h.declaring), [[0],[1]], "backfills declaring as the bidder alone");
 eq(m.hands.map(h=>h.trickSplit), [[0,3],[4,0]], "renames defSplit to trickSplit");
 eq(m.hands.map(h=>h.delta), [[140,30],[40,-240]], "preserves deltas exactly as scored");
-eq(m.rules.defShare, false, "adds the new defShare rule at its default \u2014 off, per the documented rule");
+eq(m.rules.defIndividual, true,
+   "adds the defender rule at its default \u2014 on, matching the documented rule");
 eq(m.hands.every(h=>!!h.id && !!h.scoredUnder), true, "assigns hand ids and a rules snapshot");
 
 /* 3-side v1 */
@@ -194,11 +195,11 @@ eq(twice.hands.map(h=>h.declaring), once.hands.map(h=>h.declaring), "migrate is 
 group("rules table");
 
 const byKey = k => API.RULES.find(r => r.key === k);
-eq(byKey("defShare").seats, [3,5], "defShare hidden at 2 sides, shown at 3 and 5");
+eq(byKey("defIndividual").seats, [3,5], "hidden at 4 players, shown at 3 and 5");
 eq(byKey("winOnBid").rescorable, false, "winOnBid is a win condition, not a scoring rule");
 eq(byKey("backDoor").rescorable, false, "backDoor is a loss condition, not a scoring rule");
 eq(API.RULES.filter(r=>r.rescorable).map(r=>r.key),
-   ["defTricks","slam","misereNoDef","defShare"], "exactly four rules can rescore");
+   ["defTricks","slam","misereNoDef","defIndividual"], "exactly four rules can rescore");
 
 console.log("\n" + pass + " passed, " + fail + " failed\n");
 process.exit(fail ? 1 : 0);

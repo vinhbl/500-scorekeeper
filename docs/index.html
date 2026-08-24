@@ -180,15 +180,20 @@
   .submit{
     width:100%;padding:16px;border-radius:2px;background:var(--gold);color:var(--ink);
     font-weight:700;font-size:14px;letter-spacing:.04em;cursor:pointer;
-    /* a transparent border keeps the box identical to the outlined Undo state */
-    border:1px solid transparent;
+    /* a transparent border keeps the box identical to the outlined Undo state,
+       and the explicit line-height pins the height whatever the state */
+    border:1px solid transparent;line-height:1.25;
+    display:flex;align-items:center;justify-content:center;
   }
   .submit:disabled{background:rgba(239,233,220,.14);color:rgba(239,233,220,.35);cursor:not-allowed}
   .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
-  .submit.undo{
-    background:transparent;color:rgba(239,233,220,.75);border-color:var(--line-lt);
+  /* Named undo-hand, not undo: .undo is the log's small link, defined later in
+     this sheet, and at equal specificity it was overriding this button's
+     padding and font-size \u2014 which is why Undo came out half the height. */
+  .submit.undo-hand{
+    background:transparent;color:var(--bone);border-color:var(--line-lt);
   }
-  .submit.undo:hover{background:rgba(239,233,220,.06);color:var(--bone)}
+  .submit.undo-hand:hover{background:rgba(239,233,220,.06)}
   .preview{font-family:var(--mono);font-size:11px;text-align:center;margin-top:9px;color:rgba(239,233,220,.6)}
 
   /* ---------- log ---------- */
@@ -247,7 +252,7 @@
     color:var(--bone);margin-right:2px;
   }
   .schip-sub:empty{display:none}
-  .schip-sub:not(:empty)::before{content:" \00b7 "}
+  .schip-sub:not(:empty){margin-left:6px}
   .schip-chev{width:15px;height:15px;flex:none;color:rgba(239,233,220,.45)}
   @media (prefers-reduced-motion:no-preference){
     .schip-chev{transition:transform .22s ease}

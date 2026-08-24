@@ -26,8 +26,9 @@
     {key:"misereNoDef", seats:[2,3,5], rescorable:true,
      label:"Defenders do not score during a mis\u00e8re",
      note:"How most tables play it. Off means defenders keep their tricks."},
-    {key:"defShare",  seats:[3,5],   rescorable:true,  label:"Each defender scores the whole team's tricks",
-     note:"Off means each defender scores only the tricks they took."},
+    {key:"defIndividual", seats:[3,5], rescorable:true,
+     label:"Defenders score individually",
+     note:"Each defender scores only the tricks they took. Off means every defender scores the whole team's."},
     {key:"winOnBid",  seats:[2,3,5], rescorable:false, label:"You must be the bidder to win",
      note:"Crossing 500 on defensive tricks doesn't end the game."},
     {key:"backDoor",  seats:[2,3,5], rescorable:false, label:"\u2212500 loses outright",
@@ -45,7 +46,7 @@
     /* Off by default: the documented rule in every source is that each defender
        scores only the tricks they personally took. Tables that pool defensive
        tricks turn this on. */
-    defShare:false, winOnBid:true, backDoor:true
+    defIndividual:true, winOnBid:true, backDoor:true
   };
 
   function newId(p){
@@ -145,7 +146,8 @@
   }
 
   /* misereDef ("defenders score") became misereNoDef ("they do not"), so every
-     rule now defaults to on. Flip any stored value, including the frozen copy
+     rule now defaults to on, and defShare became defIndividual the same way.
+     Flip any stored value, including the frozen copy
      on each hand \u2014 otherwise a rescore would use the wrong sense. */
   function migrateMisere(r){
     if(!r) return r;
@@ -153,6 +155,10 @@
       r.misereNoDef = !r.misereDef;
     }
     delete r.misereDef;
+    if(typeof r.defIndividual === "undefined" && typeof r.defShare !== "undefined"){
+      r.defIndividual = !r.defShare;
+    }
+    delete r.defShare;
     return r;
   }
 
@@ -197,7 +203,7 @@
       for(i=0;i<n;i++){ if(decl.indexOf(i) < 0) defTotal += (h.trickSplit[i]||0); }
       for(i=0;i<n;i++){
         if(decl.indexOf(i) >= 0) continue;
-        d[i] += (rules.defShare ? defTotal : (h.trickSplit[i]||0)) * 10;
+        d[i] += (rules.defIndividual ? (h.trickSplit[i]||0) : defTotal) * 10;
       }
     }
     return d;
@@ -686,7 +692,7 @@
 
     var ready = readyToScore();
     html += draft.scored
-      ? '<button class="submit undo" id="undoBtn">Undo this hand</button>'
+      ? '<button class="submit undo-hand" id="undoBtn">Undo this hand</button>'
       : '<button class="submit" id="scoreBtn"'+(ready?'':' disabled')+'>Score this hand</button>';
     if(ready){
       var d = scoreHand(buildHand());
@@ -796,15 +802,22 @@
     return RULES.every(function(r){ return S.rules[r.key] === DEFAULT_RULES[r.key]; });
   }
 
+  function setSeats(want){
+    var rules = clone(S.rules);
+    S = freshState(want);
+    S.rules = Object.assign(clone(S.rules), rules);
+    draft = blankDraft();
+    save(); renderAll();
+  }
+
   function renderPlayers(){
-    var locked = S.hands.length > 0;
-    var html = '<p class="disclosure-note">'+(locked
-      ? "Locked while a game is in progress \u2014 start a new game to change it."
-      : "Four players in fixed partnerships, three cutthroat, or five with a called partner.")+'</p>'+
+    var html = '<p class="disclosure-note">'+
+      "Three cutthroat, four in fixed partnerships, or five with a called partner." +
+      (S.hands.length ? " Changing this starts a new game." : "") + '</p>'+
       '<div class="seat-toggle">'+
         [3,2,5].map(function(k){
-          return '<button class="chip" data-role="seats" data-i="'+k+'" aria-pressed="'+(S.game.seats===k)+'"'+
-            (locked?' disabled':'')+'>'+playerLabel(k)+'</button>';
+          return '<button class="chip" data-role="seats" data-i="'+k+'" aria-pressed="'+(S.game.seats===k)+'">'+
+            playerLabel(k)+'</button>';
         }).join("")+
       '</div>';
     $("players").innerHTML = html;
@@ -823,7 +836,7 @@
     if(sub) sub.textContent = rulesAreDefault() ? "Default" : "Custom";
 
     var ng = $("newGameSub");
-    if(ng) ng.textContent = S.hands.length ? "Current game in progress" : "";
+    if(ng) ng.textContent = S.hands.length ? "Game in progress" : "";
   }
 
 
@@ -921,9 +934,22 @@
       if(b.disabled) return;
       var want = +b.dataset.i;
       if(want === S.game.seats) return;
-      S = freshState(want);
-      draft = blankDraft();
-      save(); renderAll(); return;
+      /* Changing the table size restarts the game \u2014 hands scored for two sides
+         mean nothing at five \u2014 so ask first if anything is on the sheet. */
+      if(S.hands.length){
+        openDialog({
+          title: "Start a new game?",
+          body: '<p>Changing to '+playerLabel(want)+' clears the score sheet. '+
+                S.hands.length+' hand'+(S.hands.length===1?"":"s")+' will be lost.</p>',
+          confirm: "Start new game",
+          cancel: "Cancel",
+          danger: true,
+          onConfirm: function(){ setSeats(want); }
+        });
+        return;
+      }
+      setSeats(want);
+      return;
     }
 
     if(role === "reset"){

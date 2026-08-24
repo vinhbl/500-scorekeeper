@@ -80,7 +80,7 @@ group("cold start");
   ok(d.querySelectorAll(".side").length === 2, "renders two score cards");
   ok(d.querySelector("#bidTable").innerHTML.includes("440"), "bid table renders");
   ok(d.querySelector("#dialog").hidden, "dialog starts hidden");
-  ok(!d.querySelector('[data-rule="defShare"]'), "defShare hidden at two sides");
+  ok(!d.querySelector('[data-rule="defIndividual"]'), "the defender rule is hidden at four players");
   ok(d.querySelector('[data-rule="defTricks"]'), "defTricks visible at two sides");
 }
 
@@ -117,10 +117,21 @@ group("seat lock");
   setTricks(d, 10);
   click(d, "#scoreBtn");
   eq(API.state().hands.length, 1, "five-player hand recorded");
-  ok(chip(d, "seats", 3).disabled, "seat toggle locks once a hand exists");
+  ok(!chip(d, "seats", 3).disabled, "the seat toggle stays live mid-game");
+
+  /* changing the table size restarts the game, so it asks first */
   const before = API.state().game.seats;
   click(d, chip(d, "seats", 3));
-  eq(API.state().game.seats, before, "clicking a locked seat toggle does nothing");
+  ok(!d.querySelector("#dialog").hidden, "it confirms before discarding the sheet");
+  eq(API.state().game.seats, before, "and changes nothing until confirmed");
+  click(d, "#dlgCancel");
+  eq(API.state().game.seats, before, "cancelling leaves the game alone");
+  eq(API.state().hands.length, 1, "with its hands intact");
+
+  click(d, chip(d, "seats", 3));
+  click(d, "#dlgOk");
+  eq(API.state().game.seats, 3, "confirming switches the table");
+  eq(API.state().hands.length, 0, "and starts a fresh sheet");
 }
 
 /* ================= 5-player partner + alone ================= */
@@ -737,7 +748,7 @@ group("settings");
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 0));
   click(d, "#scoreBtn");
-  eq(d.getElementById("newGameSub").textContent, "Current game in progress",
+  eq(d.getElementById("newGameSub").textContent, "Game in progress",
      "the new-game chip reports a game underway");
 }
 {
@@ -818,15 +829,18 @@ group("settings");
      "the label and its state share one line");
   ok(/\.schip-txt\{[^}]*text-overflow:ellipsis/.test(src),
      "and clip rather than wrapping, so chip height never changes");
-  ok(/\.schip-sub:not\(:empty\)::before\{content:" \\00b7 "\}/.test(src),
-     "a dot separates them, and disappears when there is no state to show");
+  ok(/\.schip-sub:not\(:empty\)\{margin-left:6px\}/.test(src),
+     "the state is spaced off the label, with no separator");
+  ok(!/schip-sub[^}]*::before/.test(src), "and no dot");
   ok(!/\.settings\{[^}]*gap:/.test(src),
      "no flex gap on the container \u2014 a collapsed panel would double the spacing");
   ok(/\.schip\{[^}]*margin-top:9px/.test(src), "the chips space themselves evenly instead");
   ok(/\.submit\{[^}]*border:1px solid transparent/.test(src),
      "the score button reserves a border so Undo is exactly the same height");
-  ok(/\.submit\.undo\{[^}]*border-color:var\(--line-lt\)/.test(src),
+  ok(/\.submit\.undo-hand\{[^}]*border-color:var\(--line-lt\)/.test(src),
      "Undo only recolours that border rather than adding one");
+  ok(!/\.submit\.undo\{/.test(src),
+     "and is not called .undo \u2014 that class belongs to the log link and would win on order");
 }
 
 /* every rule ships on, so the panel reads as a list of things you can turn off */
@@ -835,8 +849,7 @@ group("settings");
   click(d, chip(d, "seats", 5));
   const boxes = [...d.querySelectorAll("#rules input")];
   const off = boxes.filter(function(b){ return !b.checked; }).map(function(b){ return b.dataset.rule; });
-  eq(off, ["defShare"],
-     "defShare is the one default still off \u2014 every other rule ships enabled");
+  eq(off, [], "every rule now ships enabled, so the panel is a list of things to turn off");
 }
 
 /* a full hand still records, with no confirm step in the way */
