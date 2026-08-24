@@ -852,6 +852,55 @@ group("settings");
   eq(off, [], "every rule now ships enabled, so the panel is a list of things to turn off");
 }
 
+/* ---- a scored hand must not keep blocking the next auction ----
+   The table drew every cell as live, but outbid() still measured against the
+   contract sitting in the record panel, so taps below it silently did nothing. */
+{
+  const { d, API } = boot();
+  click(d, cellVal(d, 7, 2));                 // 7 diamonds, 180
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "hand scored");
+
+  const lower = cellVal(d, 7, 1);             // 7 clubs, 160 — below the scored bid
+  ok(!lower.disabled, "a lower bid is enabled");
+  ok(lower.className.indexOf("dead") < 0, "and not struck through");
+  click(d, lower);
+  ok(d.querySelector("#record .contract-line").textContent.indexOf("160") > -1,
+     "and tapping it actually selects it");
+  eq(d.querySelector("#record .submit").textContent, "Score this hand",
+     "which starts a fresh hand");
+}
+{
+  /* the lowest bid on the board is the sharpest case */
+  const { d } = boot();
+  click(d, cellVal(d, 10, 4));                // 10 no-trumps, 520
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  click(d, cellVal(d, 6, 0));                 // 6 spades, 40
+  ok(d.querySelector("#record .contract-line").textContent.indexOf("40") > -1,
+     "even 6 spades is selectable after a 520 hand is scored");
+}
+{
+  /* but a live bid still blocks, which is the point of the rule */
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));                 // 8 hearts, 300 — not scored
+  const lower = cellVal(d, 7, 0);             // 7 spades, 140
+  ok(lower.disabled, "while a bid stands, lower ones stay disabled");
+}
+{
+  /* misere is on the same footing */
+  const { d } = boot();
+  click(d, cellVal(d, 9, 4));                 // 9 no-trumps, 420
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  const mis = d.querySelector('[data-id="misere"]');   // 250, below 420
+  ok(!mis.disabled, "misere is live again after a bigger hand is scored");
+  click(d, mis);
+  ok(d.querySelector("#record .contract-line").textContent.indexOf("250") > -1,
+     "and selectable");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();

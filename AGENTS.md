@@ -147,6 +147,11 @@ stays portrait-only. Until then the landscape block hides everything except the 
 
 `test/ui.test.js` now asserts computed styles for both. Markup assertions cannot catch either.
 
+**Render and handler must share one predicate.** Three bugs have come from a condition being
+written twice: the defender split (fixed by `declaringKnown()`), and the bid table blocking bids
+below a hand that was already scored (fixed by `standingContract()`). If the UI decides whether
+something is enabled, the tap handler must ask the *same function* — never re-derive it.
+
 Gotchas that still bite:
 
 - **The island hides a Live Activity while its own app is frontmost** (only relevant if that work

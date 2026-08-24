@@ -563,18 +563,23 @@
      part rather than sitting outside the ladder.
      NOTE: some tables rank mis\u00e8re by its own convention rather than by points.
      See product/BACKLOG.md before treating this as settled. */
+  /* The single source for "is there a bid on the table right now". Once a hand
+     is scored its auction is over, so nothing stands \u2014 the recorded hand is
+     still in the record panel, but it must not block the next bid. Both the
+     render and the tap handler read this, so they cannot disagree. */
+  function standingContract(){
+    return draft.scored ? null : draft.contract;
+  }
   function standingValue(){
-    return draft.contract ? draft.contract.value : 0;
+    var c = standingContract();
+    return c ? c.value : 0;
   }
   function outbid(value){
     return value <= standingValue();
   }
 
   function renderBidTable(){
-    /* Once a hand is scored its auction is over, so the table clears \u2014 no
-       selection, nothing struck through \u2014 ready for the next bid. The record
-       panel is what still holds the hand that was just played. */
-    var standing = draft.scored ? null : draft.contract;
+    var standing = standingContract();
     var head = '<tr><th></th>' + SUITS.map(function(s){
       return '<th class="suit s-'+s.key+'">'+s.glyph+'</th>';
     }).join("") + '</tr>';
@@ -583,7 +588,7 @@
       return '<tr><td class="lvl">'+lv+'</td>' + SUITS.map(function(s,si){
         var v = bidValue(lv,si);
         var sel = standing && standing.type==="suit" && standing.level===lv && standing.suit===s.key;
-        var dead = !sel && !draft.scored && outbid(v);
+        var dead = !sel && outbid(v);
         return '<td><button class="cell c-'+s.key+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
           (dead?' disabled':'')+' '+
           'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
@@ -596,7 +601,7 @@
     var specs = [{id:"misere",label:"Mis\u00e8re",value:250},{id:"open",label:"Open mis\u00e8re",value:500}];
     $("specials").innerHTML = specs.map(function(sp){
       var sel = standing && standing.type==="misere" && standing.id===sp.id;
-      var dead = !sel && !draft.scored && outbid(sp.value);
+      var dead = !sel && outbid(sp.value);
       return '<button class="cell spec c-misere'+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
         (dead?' disabled':'')+' data-kind="misere" data-id="'+sp.id+'"'+
         ' aria-label="'+sp.label+', '+sp.value+' points'+(dead?', outbid':'')+'">'+
@@ -866,7 +871,8 @@
     if(b.dataset.kind === "misere"){
       var id = b.dataset.id;
       var mv = id==="open" ? 500 : 250;
-      if(draft.contract && draft.contract.type==="misere" && draft.contract.id===id){
+      var stdM = standingContract();
+      if(stdM && stdM.type==="misere" && stdM.id===id){
         clearContract(); return;
       }
       if(outbid(mv)) return;
