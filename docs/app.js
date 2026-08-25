@@ -494,6 +494,82 @@
     }
   }
 
+
+  /* ---------- Live Activity ----------
+     Two-side games only: five totals do not fit the compact pill, and an
+     unreadable pill is worse than none. Entirely inert on the web and on any
+     device without ActivityKit \u2014 every call is guarded and every failure is
+     swallowed, because the scoreboard is the feature and this is a garnish. */
+  var laRunning = false;
+
+  function liveActivity(){
+    var C = (typeof window !== "undefined") && window.Capacitor;
+    return (C && C.Plugins && C.Plugins.LiveActivity) || null;
+  }
+
+  function laPayload(){
+    var t = totals();
+    var o = outcome();
+    return {
+      gameId:    S.game.id,
+      us:        t[0],
+      them:      t[1],
+      usLabel:   S.sides[0].name,
+      themLabel: S.sides[1].name,
+      /* the app owns the win rules \u2014 winOnBid and backDoor live here, and the
+         widget must not carry a second copy of them */
+      winner:    o ? (o.type === "out" ? (o.side === 0 ? 1 : 0) : o.side) : -1,
+      wentOut:   !!(o && o.type === "out")
+    };
+  }
+
+  function laEnd(payload, linger){
+    var LA = liveActivity();
+    laRunning = false;
+    if(!LA) return;
+    var body = payload || {};
+    body.linger = !!linger;
+    try { LA.end(body); } catch(e){}
+  }
+
+  function syncLiveActivity(){
+    var LA = liveActivity();
+    if(!LA) return;
+
+    var eligible = S.game.seats === 2 && S.hands.length > 0;
+    if(!eligible){
+      if(laRunning) laEnd(null, false);
+      return;
+    }
+
+    var payload = laPayload();
+
+    if(!laRunning){
+      laRunning = true;
+      var started;
+      try { started = LA.start(payload); } catch(e){ laRunning = false; return; }
+      if(started && started.then){
+        started.then(function(r){
+          /* the user can refuse Live Activities \u2014 do not keep retrying */
+          if(r && r.started === false){ laRunning = false; return; }
+          /* a first hand can also be a winning hand; end only once the activity
+             actually exists, or there is nothing for ActivityKit to end */
+          if(payload.winner >= 0) laEnd(payload, true);
+        }).catch(function(){ laRunning = false; });
+      }
+      return;
+    }
+
+    if(payload.winner >= 0){
+      /* let a finished game linger with its real totals rather than vanishing
+         the moment someone crosses 500 */
+      laEnd(payload, true);
+      return;
+    }
+
+    try { LA.update(payload); } catch(e){}
+  }
+
   /* ---------- scoring feedback ----------
      After a hand lands, bring the board back into view and let the totals count
      to their new value, so the change is something you watch rather than
@@ -910,7 +986,11 @@
   }
 
 
-  function renderAll(){ renderBoard(); renderBidTable(); renderRecord(); renderReference(); renderLog(); renderPlayers(); renderRules(); }
+  function renderAll(){
+    renderBoard(); renderBidTable(); renderRecord(); renderReference();
+    renderLog(); renderPlayers(); renderRules();
+    syncLiveActivity();
+  }
 
   /* ---------- events ---------- */
   document.addEventListener("click", function(e){

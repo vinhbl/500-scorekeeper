@@ -1066,6 +1066,115 @@ function pressedIn(d, role){
   ok(row.className.indexOf("fill") > -1, "and comes back when they fit again");
 }
 
+/* ================= Live Activity bridge ================= */
+group("live activity");
+
+/* The plugin only exists inside the iOS shell, so stub it and watch the calls. */
+function withLA(seats){
+  const b = boot();
+  const calls = [];
+  b.w.Capacitor = { Plugins: { LiveActivity: {
+    start:  function(p){ calls.push(["start", p]);  return Promise.resolve({started:true}); },
+    update: function(p){ calls.push(["update", p]); return Promise.resolve(); },
+    end:    function(p){ calls.push(["end", p]);    return Promise.resolve(); }
+  }}};
+  if(seats && seats !== 2) click(b.d, chip(b.d, "seats", seats));
+  calls.length = 0;
+  return Object.assign(b, { calls: calls });
+}
+
+{
+  const { d, calls } = withLA();
+  click(d, cellVal(d, 8, 3));
+  eq(calls.length, 0, "picking a bid starts nothing \u2014 no hand has been played");
+
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(calls.length, 1, "the first scored hand starts it");
+  eq(calls[0][0], "start", "with a start");
+  eq(calls[0][1].us, 300, "carrying the running totals");
+  eq(calls[0][1].them, 20, "for both sides");
+  eq(calls[0][1].usLabel, "Us", "and the side names");
+  eq(calls[0][1].winner, -1, "with no winner yet");
+}
+{
+  const { d, calls } = withLA();
+  click(d, cellVal(d, 6, 0));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  calls.length = 0;
+  click(d, cellVal(d, 7, 0));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(calls.map(function(c){ return c[0]; }), ["update"], "later hands update rather than restart");
+  eq(calls[0][1].us, 180, "with the new total");
+}
+{
+  /* five players cannot be shown in a pill, so it never starts */
+  const { d, calls } = withLA(5);
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "partner", 2));
+  giveTrick(d, 1);
+  giveTrick(d, 3);
+  click(d, "#scoreBtn");
+  eq(calls.filter(function(c){ return c[0] === "start"; }).length, 0,
+     "no activity at five players");
+}
+{
+  /* a hand can start the activity and win the game at once, so the end has to
+     wait for the start to resolve — otherwise there is nothing to end yet */
+  const { d, calls } = withLA();
+  click(d, cellVal(d, 10, 4));           // 520 — enough to win outright
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(calls.map(function(c){ return c[0]; }), ["start"], "it starts first");
+  deferred.push(function(){
+    const ends = calls.filter(function(c){ return c[0] === "end"; });
+    eq(ends.length, 1, "then ends once the activity exists");
+    eq(ends[0][1].linger, true, "letting it linger");
+    eq(ends[0][1].winner, 0, "naming the winner");
+    eq(ends[0][1].us, 520, "with the real final totals, not a placeholder");
+  });
+}
+{
+  /* winning on a later hand ends it directly */
+  const { d, calls } = withLA();
+  click(d, cellVal(d, 9, 4));            // 420
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  calls.length = 0;
+  click(d, cellVal(d, 6, 3));            // 6 hearts, +100 takes it past 500
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  const ends = calls.filter(function(c){ return c[0] === "end"; });
+  eq(ends.length, 1, "crossing 500 on a later hand ends it");
+  eq(ends[0][1].linger, true, "with a linger");
+  eq(ends[0][1].us, 520, "showing the real total");
+}
+{
+  /* undo takes the game back under 500, so it starts again */
+  const { d, calls } = withLA();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  calls.length = 0;
+  click(d, "#undoBtn");
+  eq(calls.map(function(c){ return c[0]; }), ["end"], "removing the only hand ends it");
+  eq(calls[0][1].linger, false, "without lingering \u2014 there is no result to show");
+}
+{
+  /* the win rules live in the app, never in the widget */
+  const { d, calls } = withLA();
+  const box = d.querySelector('[data-rule="backDoor"]');
+  ok(box, "the back-door rule exists");
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  ok(Object.prototype.hasOwnProperty.call(calls[0][1], "wentOut"),
+     "the payload states whether the game ended out the back door");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();

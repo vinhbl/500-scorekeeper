@@ -1,4 +1,12 @@
-# Spec — Live Activity scoreboard (Dynamic Island)
+# Dynamic Island scoreboard
+
+> **Status: built, August 2026.** Swift lives in `ios/App/FiveHundredWidget/`,
+> the bridge in `ios/App/App/LiveActivityPlugin.swift`, the web side in
+> `syncLiveActivity()` in `docs/app.js`. Xcode target setup is in
+> `ios/LIVE-ACTIVITY-SETUP.md` — it cannot be done from source.
+>
+> M4 (landscape) remains deferred per ADR 0006: iOS 26 does not expose
+> orientation to a Live Activity.
 
 | | |
 |---|---|
