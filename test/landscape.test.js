@@ -60,10 +60,12 @@ const block = (function(){
 
 /* ---- every slide uses its screen, not just the bid table ---- */
 {
-  ok(/\.slide\[data-slide="ranks"\] \.rcard\{[^}]*flex:1 1 0/.test(block),
-     "rank chips divide the row instead of sitting at a fixed width");
-  ok(/\.slide\[data-slide="ranks"\] \.cards\{[^}]*flex-wrap:nowrap/.test(block),
-     "the ladder stays on one line in landscape");
+  ok(/\.slide\[data-slide="ranks"\] \.rcard\{[\s\S]*?width:58px;height:74px/.test(block),
+     "landscape chips are a fixed size, same model as portrait");
+  ok(!/\.slide\[data-slide="ranks"\] \.cards\{[^}]*nowrap/.test(block),
+     "the ladder may wrap \u2014 it runs to fifteen chips at five players");
+  ok(/\.slide\[data-slide="ranks"\] \.ranks\{[^}]*justify-content:space-between/.test(block),
+     "the ladder hugs the top and the note the bottom");
   ok(/\.slide\[data-slide="ranks"\] \.panel\{[^}]*flex:1/.test(block),
      "the ranks panel fills the slide");
   ok(/\.slide\[data-slide="ranks"\] \.rk-note\{[^}]*font-size:14px/.test(block),
@@ -128,8 +130,8 @@ const block = (function(){
      "slides pad on the right to clear the dot rail");
   ok(/\.slide\.land\{[^}]*calc\(9px \+ var\(--safe-b\)\)/.test(block),
      "and reclaim the bottom space the dots used to occupy");
-  ok(/\.slide\[data-slide="ranks"\] \.rcard\.tail\{flex:2\.2/.test(block),
-     "the tail chip gets the width a five-card run needs");
+  ok(/\.slide\[data-slide="ranks"\] \.rcard\.tail\{width:auto/.test(block),
+     "the tail chip hugs its text if it is ever needed");
   ok(/\.dots b\.on\{/.test(block), "there is an active dot state");
   ok(/<nav class="dots" id="dots" hidden/.test(html), "dots start hidden and are shown only in landscape");
 }

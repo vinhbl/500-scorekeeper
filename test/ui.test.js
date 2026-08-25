@@ -65,6 +65,11 @@ function setTricks(d, target){
   }
 }
 function tricksNow(d){ return +d.querySelector(".srow .step-val").textContent; }
+/* every rank on the ladder, high to low */
+function ladder(d){
+  return [...d.querySelectorAll("#referencePage .rcard")]
+    .map(function(c){ return c.querySelector(".r").textContent; });
+}
 function giveTrick(d, side){ click(d, d.querySelector('[data-role="split-inc"][data-side="'+side+'"]')); }
 function splitSides(d){
   return new Set([...d.querySelectorAll('#record [data-role="split-inc"]')].map(b => b.dataset.side)).size;
@@ -399,7 +404,7 @@ group("round reference");
     return c.querySelector(".s").textContent;
   });
   eq(bowers, ["\u2660","\u2663"], "spade trump promotes the club jack");
-  eq(d.querySelector(".rcard.tail").textContent.trim(), "6 5", "black trump runs to 5 in a 43-card deck");
+  eq(ladder(d).slice(-3), ["7","6","5"], "black trump runs down to the five in a 43-card deck");
 }
 
 /* clearing the bid returns the reference to its default, not to nothing */
@@ -439,13 +444,15 @@ group("round reference");
   const { d } = boot();
   click(d, chip(d, "seats", 3));
   click(d, cellVal(d, 8, 3));
-  eq(d.querySelector(".rcard.tail"), null, "33-card deck stops at 7 \u2014 no tail");
+  eq(ladder(d).slice(-1), ["7"], "33-card deck stops at the seven");
+  eq(d.querySelector(".rcard.tail"), null, "and needs no tail \u2014 every rank is shown");
 }
 {
   const { d } = boot();
   click(d, chip(d, "seats", 5));
   click(d, cellVal(d, 8, 3));
-  eq(d.querySelector(".rcard.tail").textContent.trim(), "6 5 4 3 2", "53-card deck runs to 2");
+  eq(ladder(d).slice(-5), ["6","5","4","3","2"], "53-card deck runs all the way to the two");
+  eq(d.querySelectorAll("#referencePage .rcard").length, 15, "fifteen chips, joker and both bowers included");
 }
 
 /* no-trump and mis\u00e8re share the no-trump ladder */
@@ -454,7 +461,7 @@ group("round reference");
   click(d, cellVal(d, 8, 4));
   ok(d.querySelector(".rk-head").textContent.indexOf("no trumps") > -1, "no-trump header");
   eq(d.querySelectorAll("#referencePage .rcard.bower").length, 0, "no bowers in no-trumps");
-  eq(d.querySelectorAll("#referencePage .quad").length, 8, "every rank shows all four suits");
+  eq(d.querySelectorAll("#referencePage .quad").length, 11, "every no-trump rank carries its suits");
 }
 {
   const { d } = boot();
@@ -615,17 +622,27 @@ group("split appears only once the bidder's side is known");
   ok(d.querySelector("#scoreBtn").disabled, "score waits for the tricks to be assigned");
 }
 
-/* ---- the tail chip centres and stays on one line ---- */
+/* ---- the ladder shows every rank, so no tail is needed ---- */
 {
-  const { d, w } = boot();
+  const { d } = boot();
   click(d, chip(d, "seats", 5));
   click(d, cellVal(d, 8, 3));
-  const tail = d.querySelector("#reference .rcard.tail .r");
-  ok(tail, "the tail chip renders for a 53-card deck");
-  eq(tail.textContent, "6 5 4 3 2", "the full run is there");
-  const cs = w.getComputedStyle(tail);
-  eq(cs.whiteSpace, "nowrap", "it never breaks mid-run");
-  eq(cs.gridRow, "1 / -1", "and spans both rows so it centres rather than sitting low");
+  eq(d.querySelector("#referencePage .rcard.tail"), null,
+     "no tail at five players \u2014 the whole deck is on the ladder");
+  eq(ladder(d).join(" "), "JKR J J A K Q 10 9 8 7 6 5 4 3 2",
+     "fifteen chips, right down to the two");
+}
+
+/* the tail survives only as a third-row fallback, which nothing reaches today */
+{
+  const { API } = boot();
+  const cards = "JKR J J A K Q 10 9 8 7 6 5 4 3 2".split(" ")
+    .map(function(r){ return r === "JKR" ? {joker:true} : {r:r}; });
+  eq(API.fitLadder(cards, 10).tail, null, "fifteen chips fit two rows of ten");
+  eq(API.fitLadder(cards, 9).tail,  null, "and two rows of nine");
+  const squeezed = API.fitLadder(cards, 5);
+  eq(squeezed.cards.length, 9, "but at five per row it keeps nine");
+  eq(squeezed.tail, "7 6 5 4 3 2", "and folds the remaining six ranks into a tail");
 }
 
 /* ---- the seat toggle lives on navy, so it needs on-ink colours ---- */
@@ -899,6 +916,63 @@ group("settings");
   click(d, mis);
   ok(d.querySelector("#record .contract-line").textContent.indexOf("250") > -1,
      "and selectable");
+}
+
+/* ---- the card splits into two groups pushed apart ---- */
+{
+  const { d } = boot();
+  const ranks = d.querySelector("#referencePage .ranks");
+  eq([...ranks.children].map(function(c){ return c.className; }), ["rk-top","rk-bottom"],
+     "ladder on top, note at the bottom \u2014 not one centred block");
+  ok(ranks.querySelector(".rk-top .cards"), "the ladder is in the top group");
+  ok(ranks.querySelector(".rk-bottom .rk-note"), "the note is in the bottom group");
+
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  ok(/\.ranks\{[\s\S]*?justify-content:space-between/.test(src),
+     "so the slack pools between them rather than above and below");
+  ok(/\.rk-bottom\{[^}]*border-top/.test(src),
+     "the divider belongs to the bottom group, not to the note's margin");
+}
+
+/* ---- a rank that exists in only some suits shows only those ---- */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 9, 4));                 // no-trumps at four players
+  const chips = [...d.querySelectorAll("#referencePage .rcard")];
+  const four = chips[chips.length - 1];
+  eq(four.querySelector(".r").textContent, "4", "the four is the lowest no-trump rank");
+  eq([...four.querySelectorAll(".quad span")].map(function(s){ return s.textContent; }),
+     ["\u2665","\u2666"],
+     "and shows only the red suits, because black stops at the five");
+  const ace = chips[1];
+  eq(ace.querySelectorAll(".quad span").length, 4, "while the ace carries all four");
+}
+{
+  const { d } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, cellVal(d, 9, 4));
+  const chips = [...d.querySelectorAll("#referencePage .rcard")];
+  eq(chips[chips.length - 1].querySelectorAll(".quad span").length, 4,
+     "at five players every rank exists in every suit, right down to the two");
+}
+
+/* ---- the note now names the joker and reinforces the ladder ---- */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 9, 2));
+  const note = d.querySelector("#referencePage .rk-note").textContent;
+  eq(note, "The joker and the jack of hearts are considered as diamonds this hand.",
+     "trump note names the joker and the promoted jack");
+  eq([...d.querySelectorAll("#referencePage .rk-note b")].map(function(b){ return b.textContent; }),
+     ["joker", "jack of hearts", "diamonds"], "with the three nouns emphasised");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 9, 4));
+  ok(d.querySelector("#referencePage .rk-note").textContent.indexOf("Every rank counts") === 0,
+     "no-trumps opens on the rank, not on the absent bowers");
+  ok(d.querySelector("#referencePage .rk-note").textContent.indexOf("No bowers") < 0,
+     "the old opening is gone");
 }
 
 /* a full hand still records, with no confirm step in the way */

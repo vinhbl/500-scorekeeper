@@ -8,6 +8,15 @@ Parked items, to prioritize and cut later. Committed work is tracked separately:
 
 ---
 
+### The 43-card deck's low cards are an assumption
+The ladder now shows every rank, which makes the deck composition visible rather than hidden
+behind a "6 5 4" tail — and therefore worth confirming. The app assumes the standard 43-card pack:
+red suits keep their fours, black suits stop at the five. Some tables instead strike the four of
+spades and the four of diamonds, which would put a four in spades and none in hearts.
+
+If that is how a table deals, the no-trump ladder is wrong in a visible way: the lowest chip would
+show the wrong pair of suits.
+
 ### Six-handed play
 Scoring is identical to four-handed — two sides, fixed partnerships — so the score sheet would
 need no change. The **card ranks reference would be wrong**, which is why it is not offered.

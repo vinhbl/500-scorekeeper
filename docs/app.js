@@ -332,9 +332,6 @@
     '<path d="M12 17V7.4M12 17C9.4 15.6 6.4 12.7 4.6 9.9M12 17c2.6-1.4 5.6-4.3 7.4-7.1" '+
     'stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>'+
     '<rect x="4.4" y="16.4" width="15.2" height="4.8" rx="1.92"/></svg>';
-  var QUAD =
-    '<span class="quad"><span class="c-blk">\u2660</span><span class="c-red">\u2665</span>'+
-    '<span class="c-blk">\u2663</span><span class="c-red">\u2666</span></span>';
 
   function suitByKey(k){
     for(var i=0;i<SUITS.length;i++) if(SUITS[i].key===k) return SUITS[i];
@@ -342,58 +339,101 @@
   }
   function suitColour(k){ return (k==="hearts"||k==="diamonds") ? "c-red" : "c-blk"; }
 
-  function deckTail(trumpKey){
-    var seats = S.game.seats;
-    if(seats === 3) return null;
-    if(seats === 5) return "6 5 4 3 2";
-    return (trumpKey==="hearts"||trumpKey==="diamonds") ? "6 5 4" : "6 5";
+  /* ---------- what is actually in the deck ----------
+     Every rank the trump suit holds, high to low, jacks excluded (they are the
+     bowers). The ladder shows all of them now rather than summarising the low
+     cards in a tail. */
+  function suitRanks(seats, suitKey){
+    if(seats === 3) return ["A","K","Q","10","9","8","7"];
+    if(seats === 5) return ["A","K","Q","10","9","8","7","6","5","4","3","2"];
+    /* 43-card deck: red suits keep their fours, black suits stop at five */
+    return (suitKey === "hearts" || suitKey === "diamonds")
+      ? ["A","K","Q","10","9","8","7","6","5","4"]
+      : ["A","K","Q","10","9","8","7","6","5"];
+  }
+
+  /* No-trumps has no single floor: at four players a 4 exists only in the red
+     suits. Each rank therefore carries the suits that actually hold it. */
+  var ALL_SUITS = ["spades","hearts","clubs","diamonds"];
+  var RED_SUITS = ["hearts","diamonds"];
+  function ntRanks(seats){
+    function all(list){ return list.map(function(r){ return {r:r, suits:ALL_SUITS}; }); }
+    if(seats === 3) return all(["A","K","Q","J","10","9","8","7"]);
+    if(seats === 5) return all(["A","K","Q","J","10","9","8","7","6","5","4","3","2"]);
+    return all(["A","K","Q","J","10","9","8","7","6","5"])
+      .concat([{r:"4", suits:RED_SUITS}]);
   }
 
   function rankCards(trumpKey){
+    var seats = S.game.seats;
     var out = [{joker:true}];
     if(trumpKey === "notrump"){
-      ["A","K","Q","J","10","9","8","7"].forEach(function(r){ out.push({r:r, nt:true}); });
+      ntRanks(seats).forEach(function(x){ out.push({r:x.r, suits:x.suits}); });
       return out;
     }
     var S1 = suitByKey(trumpKey), P1 = suitByKey(PAIR[trumpKey]);
     out.push({r:"J", g:S1.glyph, c:suitColour(S1.key), bower:true});
     out.push({r:"J", g:P1.glyph, c:suitColour(P1.key), bower:true});
-    ["A","K","Q","10","9","8","7"].forEach(function(r){
+    suitRanks(seats, trumpKey).forEach(function(r){
       out.push({r:r, g:S1.glyph, c:suitColour(S1.key)});
     });
     return out;
   }
 
+  /* The ladder may wrap to two rows, never three. If a deck ever grew long
+     enough to need a third, the overflow collapses back into a tail chip.
+     Nothing in the app reaches that today \u2014 the longest ladder is fifteen
+     chips at five players, and two rows hold eighteen. */
+  var PER_ROW_PORTRAIT = 9, PER_ROW_LANDSCAPE = 10;
+  function fitLadder(cards, perRow){
+    if(!perRow || cards.length <= perRow * 2) return {cards:cards, tail:null};
+    var keep = perRow * 2 - 1;
+    var rest = cards.slice(keep).map(function(c){ return c.joker ? "JKR" : c.r; });
+    return {cards:cards.slice(0, keep), tail:rest.join(" ")};
+  }
+
+  function pipCluster(suits){
+    return '<span class="quad">'+
+      suits.map(function(k){
+        return '<span class="'+suitColour(k)+'">'+suitByKey(k).glyph+'</span>';
+      }).join("")+'</span>';
+  }
+
+  function rankNote(trumpKey){
+    if(trumpKey === "notrump"){
+      return 'Every rank counts the same in all four suits. The <b>joker</b> is the highest card.';
+    }
+    return 'The <b>joker</b> and the <b>jack of '+suitByKey(PAIR[trumpKey]).name.toLowerCase()+
+           '</b> are considered as <b>'+suitByKey(trumpKey).name.toLowerCase()+'</b> this hand.';
+  }
+
   function renderRanks(trumpKey){
-    var cards = rankCards(trumpKey);
+    var fit = fitLadder(rankCards(trumpKey),
+                        inCarousel() ? PER_ROW_LANDSCAPE : PER_ROW_PORTRAIT);
     var head = trumpKey === "notrump"
       ? "Card ranks \u00b7 no trumps"
       : "Card ranks \u00b7 " + suitByKey(trumpKey).name + " are trumps";
 
-    var h = '<div class="ranks"><div class="rk-head">'+head+'</div><div class="cards">';
-    cards.forEach(function(c){
+    /* Two groups, not one block: the ladder hugs the top of the card and the
+       note hugs the bottom, with the slack pooling between them. */
+    var h = '<div class="ranks"><div class="rk-top">'+
+            '<div class="rk-head">'+head+'</div><div class="cards">';
+    fit.cards.forEach(function(c){
       if(c.joker){
         h += '<div class="rcard jk-card"><div class="r sm">JKR</div><div class="s">'+JOKER_CAP+'</div></div>';
         return;
       }
-      var body = c.nt ? '<div class="s">'+QUAD+'</div>'
-                      : '<div class="s '+c.c+'">'+c.g+'</div>';
+      var body = c.suits ? '<div class="s">'+pipCluster(c.suits)+'</div>'
+                         : '<div class="s '+c.c+'">'+c.g+'</div>';
       h += '<div class="rcard'+(c.bower?" bower":"")+'"><div class="r">'+c.r+'</div>'+body+'</div>';
     });
-    var tail = deckTail(trumpKey==="notrump" ? "hearts" : trumpKey);
-    if(tail) h += '<div class="rcard tail"><div class="r">'+tail+'</div></div>';
-    h += '</div>';
+    if(fit.tail) h += '<div class="rcard tail"><div class="r">'+fit.tail+'</div></div>';
+    h += '</div></div>';
 
-    h += '<div class="rk-note">' + (trumpKey === "notrump"
-      ? 'No bowers \u2014 every rank counts the same in all four suits. The <b>joker</b> is the highest card.'
-      : 'The <b>jack of '+suitByKey(PAIR[trumpKey]).name.toLowerCase()+'</b> counts as a '+
-        SINGULAR[trumpKey]+' this hand \u2014 it is the <b>left bower</b>, third highest.'
-    ) + '</div></div>';
+    h += '<div class="rk-bottom"><div class="rk-note">'+rankNote(trumpKey)+'</div></div></div>';
     return h;
   }
 
-  /* The round reference. Driven by the standing bid alone — it needs the trump
-     suit and nothing else, so it costs the user no extra input to see it. */
   /* Before any bid exists the reference still has to show something, so it
      falls back to the lowest contract rather than an empty state. */
   var DEFAULT_CONTRACT = {type:"suit", level:6, suit:"spades", label:"6 \u2660", value:40};
@@ -1066,6 +1106,8 @@
   if(typeof window !== "undefined"){
     window.__500 = {
       scoreHandWith: scoreHandWith,
+      fitLadder: fitLadder,
+      rankCards: function(t){ return rankCards(t); },
       migrate: migrate,
       v1_to_v2: v1_to_v2,
       RULES: RULES,
