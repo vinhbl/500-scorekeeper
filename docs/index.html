@@ -166,6 +166,10 @@
     color:rgba(239,233,220,.5);display:block;margin-bottom:7px;
   }
   .chips{display:flex;flex-wrap:wrap;gap:6px}
+  /* Added by fitChipRows when every chip sits on one line: they grow from their
+     natural widths to fill the row. flex-basis stays auto so a long name never
+     gets squeezed below its text. */
+  .chips.fill .chip{flex:1 1 auto}
   .chip{
     background:transparent;color:var(--bone);border:1px solid var(--line-lt);
     border-radius:2px;padding:11px 14px;font-size:13px;font-weight:500;

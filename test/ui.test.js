@@ -975,6 +975,97 @@ group("settings");
      "the old opening is gone");
 }
 
+/* ---- a scored hand ends the hand; the next bid starts a clean one ---- */
+group("the next hand starts empty");
+
+function pressedIn(d, role){
+  return [...d.querySelectorAll('#record [data-role="' + role + '"]')]
+    .filter(function(b){ return b.getAttribute("aria-pressed") === "true"; })
+    .map(function(b){ return b.textContent; });
+}
+
+{
+  const { d, API } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "hand scored");
+
+  click(d, cellVal(d, 9, 2));                    // the next bid
+  eq(pressedIn(d, "bidder"), [], "the previous bidder is cleared");
+  ok(d.querySelector("#scoreBtn").disabled, "so the hand cannot be scored until someone is named");
+  ok(d.querySelector("#record .contract-line").textContent.indexOf("380") > -1,
+     "while the new contract is in place");
+}
+{
+  /* changing your mind mid-auction is not a new hand */
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 1));
+  click(d, cellVal(d, 9, 2));
+  eq(pressedIn(d, "bidder"), ["Them"], "picking a different bid keeps the bidder");
+}
+{
+  /* five players: the partner goes too */
+  const { d, API } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, chip(d, "partner", 2));
+  giveTrick(d, 1);
+  giveTrick(d, 3);
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "five-player hand scored");
+  click(d, cellVal(d, 9, 2));
+  eq(pressedIn(d, "bidder"), [], "bidder cleared");
+  eq(pressedIn(d, "partner"), [], "and so is the partner");
+}
+{
+  /* misere is the same story */
+  const { d } = boot();
+  click(d, cellVal(d, 6, 0));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  click(d, d.querySelector('[data-id="misere"]'));
+  eq(pressedIn(d, "bidder"), [], "a misere after a scored hand starts clean too");
+}
+
+/* ---- chip rows fill the width when they fit on one line ---- */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  const row = d.querySelector("#record .chips");
+  ok(row.className.indexOf("fill") > -1, "a row that fits gets the fill class");
+
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  ok(/\.chips\.fill \.chip\{flex:1 1 auto\}/.test(src),
+     "which grows the chips from their natural widths");
+  ok(!/\.chips\.fill \.chip\{flex:1 1 0/.test(src),
+     "not from zero \u2014 a long name must never be squeezed below its text");
+}
+{
+  /* jsdom has no layout, so every chip reports offsetTop 0 and the row always
+     looks single. Stub the offsets to stage a wrap and re-run the fitter. */
+  const { d, API } = boot();
+  click(d, chip(d, "seats", 5));
+  click(d, cellVal(d, 8, 3));
+  const row = d.querySelector("#record .chips");
+  ok(row.className.indexOf("fill") > -1, "unstubbed, the row looks single and fills");
+
+  [...row.children].forEach(function(c, i){
+    Object.defineProperty(c, "offsetTop", { value: i < 3 ? 0 : 44, configurable: true });
+  });
+  API.fitChipRows();
+  ok(row.className.indexOf("fill") < 0,
+     "once the chips sit on two rows the fill is removed, so a wrapped row keeps natural widths");
+
+  [...row.children].forEach(function(c){
+    Object.defineProperty(c, "offsetTop", { value: 0, configurable: true });
+  });
+  API.fitChipRows();
+  ok(row.className.indexOf("fill") > -1, "and comes back when they fit again");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();

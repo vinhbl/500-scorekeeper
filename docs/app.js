@@ -79,6 +79,12 @@
   /* The likeliest outcome is that the contract was made exactly, so the count
      starts there and only needs touching when it wasn't. Mis\u00e8re starts at zero,
      which is its equivalent of "made it". */
+  /* Picking a bid mid-auction is a change of mind, so the bidder survives it.
+     Picking one after a hand has been scored starts a new hand, so it must not. */
+  function startHand(){
+    if(draft.scored) draft = blankDraft();
+  }
+
   function seedTricks(c){
     return c.type === "misere" ? 0 : c.level;
   }
@@ -559,6 +565,24 @@
   }
 
 
+  /* A row of chips fills the width when it fits on one line, and keeps its
+     natural widths once it wraps \u2014 stretching a wrapped row would leave the
+     last row's chips comically wide. CSS alone cannot tell the two apart, so
+     measure after render. */
+  function fitChipRows(){
+    var rows = document.querySelectorAll("#record .chips");
+    for(var i=0;i<rows.length;i++){
+      var kids = rows[i].children, single = true;
+      if(kids.length > 1 && typeof kids[0].offsetTop === "number"){
+        var top = kids[0].offsetTop;
+        for(var k=1;k<kids.length;k++){
+          if(kids[k].offsetTop !== top){ single = false; break; }
+        }
+      }
+      if(rows[i].classList) rows[i].classList.toggle("fill", single);
+    }
+  }
+
   /* ---------- disclosure chips ----------
      A grid row that animates from 0fr to 1fr, so the page lengthens and
      shortens rather than snapping. */
@@ -747,6 +771,7 @@
     }
     html += '</div>';
     el.innerHTML = html;
+    fitChipRows();
   }
 
   /* name on the left, minus / value / plus on the right \u2014 one row per number,
@@ -904,6 +929,7 @@
         clearContract(); return;
       }
       if(outbid(v)) return;
+      startHand();
       draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
       draft.tricks = seedTricks(draft.contract); draft.defSplit = null; draft.scored = false;
       renderBidTable(); renderRecord(); renderReference(); return;
@@ -916,6 +942,7 @@
         clearContract(); return;
       }
       if(outbid(mv)) return;
+      startHand();
       draft.contract = {type:"misere", id:id,
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
         value: mv};
@@ -1107,6 +1134,7 @@
     window.__500 = {
       scoreHandWith: scoreHandWith,
       fitLadder: fitLadder,
+      fitChipRows: fitChipRows,
       rankCards: function(t){ return rankCards(t); },
       migrate: migrate,
       v1_to_v2: v1_to_v2,
