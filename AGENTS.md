@@ -69,6 +69,12 @@ These have each cost real time. They are the reason this file exists.
 6. **Tests cannot verify layout, animation, or device behaviour.** A landscape CSS fix once shipped
    with passing tests and clipped content on a real phone. Anything visual or device-specific must
    be run on a simulator or device before it is called done.
+7. **`Main.storyboard`'s `customClass` must keep `customModuleProvider="target"`.** The scene points
+   at `MainViewController`, which is what registers `LiveActivityPlugin` with the bridge. Drop that
+   attribute, or rename the class without updating the XML, and UIKit resolves nothing, falls back
+   silently, and every Live Activity call becomes a no-op with no error anywhere. Confirm it in the
+   *built* app, not the source: `strings App.app/Base.lproj/Main.storyboardc/UIViewController-*.nib`
+   should contain `_TtC3App18MainViewController`.
 
 ## The data model
 

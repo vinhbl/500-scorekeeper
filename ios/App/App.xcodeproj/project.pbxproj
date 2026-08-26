@@ -16,6 +16,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		76B4F59EB464C05B3CCF6274 /* ScoreboardAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3964133A110DCCCE100FB915 /* ScoreboardAttributes.swift */; };
+		97D41858069D2EBFFC9C766B /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 534BD4CB2823AD1170274A40 /* MainViewController.swift */; };
 		A3A2965C303E44F100E70A2F /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3A2965B303E44F100E70A2F /* WidgetKit.framework */; };
 		A3A2965E303E44F100E70A2F /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3A2965D303E44F100E70A2F /* SwiftUI.framework */; };
 		A3A2966B303E44F200E70A2F /* FiveHundredWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A3A29659303E44F100E70A2F /* FiveHundredWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -57,6 +58,7 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		534BD4CB2823AD1170274A40 /* MainViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A3A29659303E44F100E70A2F /* FiveHundredWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FiveHundredWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3A2965B303E44F100E70A2F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -143,6 +145,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				C6D90729C5EFB4B3A19499D0 /* LiveActivityPlugin.swift */,
+				534BD4CB2823AD1170274A40 /* MainViewController.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -273,6 +276,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				76B4F59EB464C05B3CCF6274 /* ScoreboardAttributes.swift in Sources */,
 				C1E2A0F5EC05F5C050255752 /* LiveActivityPlugin.swift in Sources */,
+				97D41858069D2EBFFC9C766B /* MainViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

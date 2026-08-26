@@ -1073,11 +1073,18 @@ group("live activity");
 function withLA(seats){
   const b = boot();
   const calls = [];
-  b.w.Capacitor = { Plugins: { LiveActivity: {
+  /* Capacitor 6+ hands out app-local plugins through registerPlugin, not
+     through the Plugins map \u2014 stub it the way the shell actually behaves. */
+  const stub = {
+    isSupported: function(){ return Promise.resolve({supported:true}); },
     start:  function(p){ calls.push(["start", p]);  return Promise.resolve({started:true}); },
     update: function(p){ calls.push(["update", p]); return Promise.resolve(); },
     end:    function(p){ calls.push(["end", p]);    return Promise.resolve(); }
-  }}};
+  };
+  b.w.Capacitor = {
+    Plugins: {},
+    registerPlugin: function(name){ return name === "LiveActivity" ? stub : null; }
+  };
   if(seats && seats !== 2) click(b.d, chip(b.d, "seats", seats));
   calls.length = 0;
   return Object.assign(b, { calls: calls });
@@ -1173,6 +1180,51 @@ function withLA(seats){
   click(d, "#scoreBtn");
   ok(Object.prototype.hasOwnProperty.call(calls[0][1], "wentOut"),
      "the payload states whether the game ended out the back door");
+}
+
+{
+  /* the legacy Plugins map must still work, in case an older shell is used */
+  const b = boot();
+  const calls = [];
+  b.w.Capacitor = { Plugins: { LiveActivity: {
+    start: function(p){ calls.push(["start", p]); return Promise.resolve({started:true}); },
+    update: function(){ return Promise.resolve(); },
+    end: function(){ return Promise.resolve(); }
+  }}};
+  click(b.d, cellVal(b.d, 8, 3));
+  click(b.d, chip(b.d, "bidder", 0));
+  click(b.d, "#scoreBtn");
+  eq(calls.length, 1, "the legacy Capacitor.Plugins map is still honoured");
+}
+{
+  /* and nothing at all happens outside the shell */
+  const { d, API } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(API.state().hands.length, 1, "scoring works with no Capacitor present at all");
+  eq(API.la.plugin(), null, "and the bridge reports no plugin rather than throwing");
+}
+
+{
+  /* the shell can inject its runtime after the app has already booted, so a
+     failed lookup must never be remembered */
+  const { d, API } = boot();
+  eq(API.la.plugin(), null, "no plugin at boot");
+  const calls = [];
+  d.defaultView.Capacitor = {
+    Plugins: {},
+    registerPlugin: function(){ return {
+      isSupported: function(){ return Promise.resolve({supported:true}); },
+      start: function(p){ calls.push(p); return Promise.resolve({started:true}); },
+      update: function(){ return Promise.resolve(); },
+      end: function(){ return Promise.resolve(); }
+    }; }
+  };
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  eq(calls.length, 1, "it is found once it appears, rather than staying null forever");
 }
 
 /* a full hand still records, with no confirm step in the way */

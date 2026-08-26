@@ -502,9 +502,24 @@
      swallowed, because the scoreboard is the feature and this is a garnish. */
   var laRunning = false;
 
+  /* Capacitor 6+ does not auto-populate Capacitor.Plugins for a plugin that
+     lives in the app target \u2014 it has to be asked for by name. Try that first,
+     fall back to the legacy map, and cache whichever answers. */
+  var laPlugin = null;
   function liveActivity(){
+    /* Only a successful lookup is cached. Caching the miss would be permanent,
+       and the app can boot before the shell has injected its runtime. */
+    if(laPlugin) return laPlugin;
     var C = (typeof window !== "undefined") && window.Capacitor;
-    return (C && C.Plugins && C.Plugins.LiveActivity) || null;
+    if(!C) return null;
+    try {
+      if(typeof C.registerPlugin === "function"){
+        laPlugin = C.registerPlugin("LiveActivity") || null;
+        if(laPlugin) return laPlugin;
+      }
+    } catch(e){}
+    laPlugin = (C.Plugins && C.Plugins.LiveActivity) || null;
+    return laPlugin;
   }
 
   function laPayload(){
@@ -1214,6 +1229,20 @@
     window.__500 = {
       scoreHandWith: scoreHandWith,
       fitLadder: fitLadder,
+      /* diagnostics: __500.la.probe() from the Safari console */
+      la: {
+        plugin: function(){ return liveActivity(); },
+        payload: function(){ return laPayload(); },
+        probe: function(){
+          var LA = liveActivity();
+          if(!LA) return Promise.resolve({plugin:false, reason:"LiveActivity plugin not visible to the web layer"});
+          return LA.isSupported().then(function(r){
+            return {plugin:true, supported:!!(r && r.supported), seats:S.game.seats,
+                    hands:S.hands.length, running:laRunning, payload:laPayload()};
+          });
+        },
+        sync: function(){ laRunning = false; syncLiveActivity(); return "sync requested"; }
+      },
       fitChipRows: fitChipRows,
       rankCards: function(t){ return rankCards(t); },
       migrate: migrate,
