@@ -1003,7 +1003,7 @@ function pressedIn(d, role){
   click(d, cellVal(d, 8, 3));
   click(d, chip(d, "bidder", 1));
   click(d, cellVal(d, 9, 2));
-  eq(pressedIn(d, "bidder"), ["Them"], "picking a different bid keeps the bidder");
+  eq(pressedIn(d, "bidder"), ["Team 2"], "picking a different bid keeps the bidder");
 }
 {
   /* five players: the partner goes too */
@@ -1101,7 +1101,7 @@ function withLA(seats){
   eq(calls[0][0], "start", "with a start");
   eq(calls[0][1].us, 300, "carrying the running totals");
   eq(calls[0][1].them, 20, "for both sides");
-  eq(calls[0][1].usLabel, "Us", "and the side names");
+  eq(calls[0][1].usLabel, "Team 1", "and the side names");
   eq(calls[0][1].winner, -1, "with no winner yet");
 }
 {
@@ -1225,6 +1225,43 @@ function withLA(seats){
   click(d, chip(d, "bidder", 0));
   click(d, "#scoreBtn");
   eq(calls.length, 1, "it is found once it appears, rather than staying null forever");
+}
+
+/* ---- default side names ---- */
+{
+  const { API } = boot();
+  eq(API.state().sides.map(function(s){ return s.name; }), ["Team 1", "Team 2"],
+     "four players opens on Team 1 and Team 2");
+}
+{
+  /* names live in saved state, so an existing game keeps whatever it had \u2014
+     no migration, and a renamed side is never overwritten */
+  const html = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  const dom = new JSDOM(html, { runScripts:"outside-only", url:"https://example.com/500/",
+                                pretendToBeVisual:true });
+  const w = dom.window;
+  const store = { "fivehundred:game:v2": JSON.stringify({
+    version:2, game:{id:"g", startedAt:1, seats:2},
+    sides:[{id:"a", name:"Ellis"}, {id:"b", name:"Them"}],
+    rules:{defTricks:true, slam:true, misereNoDef:true, defIndividual:true,
+           winOnBid:true, backDoor:true},
+    hands:[]
+  })};
+  Object.defineProperty(w, "localStorage", { value:{
+    getItem:k=>k in store?store[k]:null, setItem:(k,v)=>{store[k]=v}, removeItem:k=>{delete store[k]}
+  }, configurable:true});
+  w.eval(fs.readFileSync(path.join(__dirname, "..", "docs", "app.js"), "utf8"));
+  eq(w.__500.state().sides.map(function(s){ return s.name; }), ["Ellis", "Them"],
+     "an existing game is untouched by the change of default");
+}
+{
+  const { d, API } = boot();
+  click(d, chip(d, "seats", 3));
+  eq(API.state().sides.map(function(s){ return s.name; }),
+     ["Player 1", "Player 2", "Player 3"], "three players are still players, not teams");
+  click(d, chip(d, "seats", 2));
+  eq(API.state().sides.map(function(s){ return s.name; }), ["Team 1", "Team 2"],
+     "and switching back restores the team names");
 }
 
 /* a full hand still records, with no confirm step in the way */

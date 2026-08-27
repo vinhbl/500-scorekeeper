@@ -36,7 +36,7 @@
   ];
 
   var SEAT_NAMES = {
-    2:["Us","Them"],
+    2:["Team 1","Team 2"],
     3:["Player 1","Player 2","Player 3"],
     5:["Player 1","Player 2","Player 3","Player 4","Player 5"]
   };

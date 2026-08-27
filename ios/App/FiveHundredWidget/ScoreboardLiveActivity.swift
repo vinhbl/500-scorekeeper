@@ -45,12 +45,16 @@ struct ScoreboardLiveActivity: Widget {
                               value: context.state.us,
                               leading: context.state.leadingIndex == 0,
                               alignment: .leading)
+                        // the expanded view runs to the rounded corners, which
+                        // clip a name that starts hard against the edge
+                        .padding(.leading, 10)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     SideBlock(name: context.state.themLabel,
                               value: context.state.them,
                               leading: context.state.leadingIndex == 1,
                               alignment: .trailing)
+                        .padding(.trailing, 10)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(footnote(context.state))
@@ -98,9 +102,10 @@ private struct SideBlock: View {
             Text(name)
                 .font(.system(size: 11, weight: .bold))
                 .textCase(.uppercase)
-                .kerning(0.6)
+                .kerning(0.5)
                 .foregroundStyle(Ink.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .truncationMode(.tail)
             Total(value: value, leading: leading, size: 30)
         }
