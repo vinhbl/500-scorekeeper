@@ -1379,6 +1379,29 @@ function standing(d){
   }
 }
 
+/* ---- only the cleared bid is marked ----
+   Touch leaves :hover on the last-tapped element, so tapping an outbid cell to
+   clear left that cell tinted as well as the one actually cleared. */
+{
+  const { d } = boot();
+  click(d, cellVal(d, 7, 2));                 // 180 stands
+  click(d, cellVal(d, 6, 2));                 // tap 80, which is outbid, to clear
+  const marked = [...d.querySelectorAll(".cell.was")].map(function(c){ return c.textContent.trim(); });
+  eq(marked, ["180"], "only the bid that was cleared carries the mark");
+  eq(d.querySelectorAll(".cell.was").length, 1, "never the cell that was tapped to clear it");
+}
+{
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  ok(/@media \(hover:none\)/.test(src),
+     "hover styles are neutralised where there is no pointer");
+  const block = src.slice(src.indexOf("@media (hover:none)"));
+  ok(/\.cell:hover[\s\S]*?background:transparent/.test(block),
+     "so a tapped cell keeps no lingering tint");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  ok(css.indexOf("@media (hover:none)") < css.lastIndexOf("[hidden]{display:none!important}"),
+     "and [hidden] is still the last rule in the sheet");
+}
+
 /* a full hand still records, with no confirm step in the way */
 {
   const { d, API } = boot();

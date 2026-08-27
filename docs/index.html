@@ -682,6 +682,26 @@
   .dlg-cancel:hover{background:rgba(239,233,220,.08)}
   .dlg-actions button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
 
+  /* ---- hover is for pointers only ----
+     A touch device leaves :hover applied to whatever was last tapped, so every
+     tap left a lingering tint that reads as a selection. That is what made a
+     cleared bid look highlighted, and it also tinted an unrelated cell when the
+     clear was triggered from somewhere else in the sheet. The bid you just
+     cleared is marked deliberately, with .was; nothing else should linger. */
+  @media (hover:none){
+    .cell:hover,
+    .chip:hover,
+    .seat-toggle .chip:hover,
+    .step:hover,
+    .undo:hover,
+    .submit.undo-hand:hover,
+    .dlg-cancel:hover{ background:transparent }
+    .schip:hover{ background:transparent;border-color:var(--line-lt) }
+    .danger:hover{ background:transparent;color:var(--red) }
+    .side-name:hover{ border-bottom-color:transparent }
+  }
+
+
   /* LAST RULE ON PURPOSE.
      The bid table and the in-round view are swapped by toggling the hidden
      attribute from JS. Rules above set display on those same elements — .head,
