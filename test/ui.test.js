@@ -305,7 +305,10 @@ function cellVal(d, lv, si){
   eq(d.querySelectorAll("#bidTable .cell.dead").length, 8, "everything worth 200 or less is struck out");
   eq(cellVal(d, 7, 3).classList.contains("dead"), false, "the standing bid itself is not struck out");
   eq(cellVal(d, 7, 4).disabled, false, "7 no-trumps at 220 stays available");
-  eq(cellVal(d, 6, 0).disabled, true, "an outbid cell is disabled, not merely faded");
+  eq(cellVal(d, 6, 0).getAttribute("aria-disabled"), "true",
+     "an outbid cell says so, and is still faded and struck through");
+  eq(cellVal(d, 6, 0).disabled, false,
+     "but it stays tappable \u2014 tapping it is how you clear the standing bid");
   eq(d.querySelector("#bidNote").textContent, "Avondale", "the bid table subtitle is fixed text");
 }
 {
@@ -903,7 +906,8 @@ group("settings");
   const { d } = boot();
   click(d, cellVal(d, 8, 3));                 // 8 hearts, 300 — not scored
   const lower = cellVal(d, 7, 0);             // 7 spades, 140
-  ok(lower.disabled, "while a bid stands, lower ones stay disabled");
+  eq(lower.getAttribute("aria-disabled"), "true",
+     "while a bid stands, lower ones are marked unavailable");
 }
 {
   /* misere is on the same footing */
@@ -1262,6 +1266,75 @@ function withLA(seats){
   click(d, chip(d, "seats", 2));
   eq(API.state().sides.map(function(s){ return s.name; }), ["Team 1", "Team 2"],
      "and switching back restores the team names");
+}
+
+/* ---- clearing a bid ----
+   Tapping the standing bid again was the only way out and nobody found it.
+   Anywhere in the sheet that is not a choosable bid now clears. */
+group("clearing the standing bid");
+
+function standing(d){
+  const c = d.querySelector('#bidTable .cell[aria-pressed="true"]');
+  return c ? c.textContent : null;
+}
+
+[
+  ["an outbid cell",   function(d){ return cellVal(d, 6, 0); }],
+  ["a level number",   function(d){ return d.querySelector("#bidTable td.lvl"); }],
+  ["a suit heading",   function(d){ return d.querySelector("#bidTable th.suit"); }],
+  ["the sheet itself", function(d){ return d.querySelector("#bidSheet"); }],
+  ["the specials row", function(d){ return d.querySelector("#specials"); }]
+].forEach(function(pair){
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  eq(standing(d), "300", "a bid stands");
+  click(d, pair[1](d));
+  eq(standing(d), null, "tapping " + pair[0] + " clears it");
+});
+
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, cellVal(d, 9, 2));
+  eq(standing(d), "380", "but a higher bid still selects rather than clearing");
+}
+{
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, cellVal(d, 8, 3));
+  eq(standing(d), null, "and tapping the standing bid still clears, as before");
+}
+{
+  const { d, API } = boot();
+  click(d, d.querySelector("#bidSheet"));
+  eq(standing(d), null, "tapping with nothing selected is harmless");
+  eq(API.state().hands.length, 0, "and records nothing");
+}
+{
+  /* a scored hand is not a standing bid, so the sheet must not disturb it */
+  const { d } = boot();
+  click(d, cellVal(d, 8, 3));
+  click(d, chip(d, "bidder", 0));
+  click(d, "#scoreBtn");
+  click(d, d.querySelector("#bidSheet"));
+  eq(d.querySelector("#record .submit").textContent, "Undo this hand",
+     "tapping the sheet after scoring leaves the recorded hand alone");
+}
+{
+  /* misere clears the same way */
+  const { d } = boot();
+  click(d, cellVal(d, 9, 4));                 // 420, so misere at 250 is outbid
+  click(d, d.querySelector('[data-id="misere"]'));
+  eq(standing(d), null, "an outbid misere clears rather than doing nothing");
+}
+
+/* landscape cells fill their row rather than hugging the number */
+{
+  const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+  ok(/table\.bids td \.cell\{[\s\S]*?position:absolute;inset:2px/.test(src),
+     "the cell is positioned against its td");
+  ok(!/\.cell\{font-size:23px;padding:0;height:100%/.test(src),
+     "height:100% is gone \u2014 it does not resolve inside a table cell in WebKit");
 }
 
 /* a full hand still records, with no confirm step in the way */

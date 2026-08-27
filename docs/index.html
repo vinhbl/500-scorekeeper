@@ -139,7 +139,6 @@
   /* outbid — still legible as a reference, clearly not a choice */
   .cell.dead{
     opacity:.26;text-decoration:line-through;text-decoration-thickness:1px;
-    cursor:not-allowed;
   }
   .cell.dead:hover{background:transparent}
   .cell.c-spades[aria-pressed="true"],.cell.c-clubs[aria-pressed="true"]{background:var(--black)}
@@ -460,7 +459,16 @@
     table.bids th.suit{font-size:27px}
     th.s-notrump{font-size:15px;letter-spacing:.04em}
     td.lvl{font-size:25px;width:46px}
-    .cell{font-size:23px;padding:0;height:100%;border-radius:3px}
+    /* A button with height:100% inside a table cell does not fill in WebKit \u2014
+       the percentage has nothing definite to resolve against, so the cell hugged
+       its number and left a gap above and below. Positioning it against the td
+       fills the row exactly, whatever height that row settles at. */
+    table.bids td{position:relative}
+    table.bids td .cell{
+      position:absolute;inset:2px;padding:0;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .cell{font-size:23px;border-radius:3px}
     .cell[aria-pressed="true"]{transform:none}
     .specials{flex:none;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
     .cell.spec{padding:12px 0;font-size:14px}

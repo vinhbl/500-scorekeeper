@@ -120,6 +120,19 @@ const block = (function(){
      "two mount points, one rendered source");
 }
 
+/* ---- bid cells fill their row ---- */
+{
+  ok(/table\.bids td\{position:relative\}/.test(block),
+     "the td is the positioning context");
+  ok(/table\.bids td \.cell\{[\s\S]*?position:absolute;inset:2px/.test(block),
+     "so the cell fills it exactly, whatever height the row settles at");
+  ok(!/\.cell\{[^}]*height:100%/.test(block),
+     "height:100% is gone \u2014 a percentage height has nothing definite to resolve " +
+     "against inside a table cell, so the cell hugged its number");
+  ok(!/table\.bids\{[^}]*height:100%/.test(block),
+     "and the table still must not set height:100% \u2014 it clips .specials in WebKit");
+}
+
 /* dots */
 {
   ok(/\.dots\{[^}]*position:fixed/.test(block), "the dot rail is pinned");

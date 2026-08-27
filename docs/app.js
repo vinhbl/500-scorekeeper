@@ -745,7 +745,7 @@
         var sel = standing && standing.type==="suit" && standing.level===lv && standing.suit===s.key;
         var dead = !sel && outbid(v);
         return '<td><button class="cell c-'+s.key+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
-          (dead?' disabled':'')+' '+
+          (dead?' aria-disabled="true"':'')+' '+
           'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
           'aria-label="'+lv+' '+s.name+', '+v+' points'+(dead?', outbid':'')+'">'+v+'</button></td>';
       }).join("") + '</tr>';
@@ -758,7 +758,7 @@
       var sel = standing && standing.type==="misere" && standing.id===sp.id;
       var dead = !sel && outbid(sp.value);
       return '<button class="cell spec c-misere'+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
-        (dead?' disabled':'')+' data-kind="misere" data-id="'+sp.id+'"'+
+        (dead?' aria-disabled="true"':'')+' data-kind="misere" data-id="'+sp.id+'"'+
         ' aria-label="'+sp.label+', '+sp.value+' points'+(dead?', outbid':'')+'">'+
         sp.label+'<b>'+sp.value+'</b></button>';
     }).join("");
@@ -1010,7 +1010,13 @@
   /* ---------- events ---------- */
   document.addEventListener("click", function(e){
     var b = e.target.closest && e.target.closest("button");
-    if(!b) return;
+    if(!b){
+      /* Tapping the standing bid again to clear it was the only way out, and
+         nobody found it. Anywhere in the sheet that is not a choosable bid now
+         clears \u2014 the gutter, a level number, a suit heading. */
+      if(e.target.closest && e.target.closest("#bidSheet") && standingContract()) clearContract();
+      return;
+    }
 
     if(b.id === "dlgOk"){ closeDialog(true); return; }
     if(b.id === "dlgCancel"){ closeDialog(false); return; }
@@ -1023,7 +1029,9 @@
       if(draft.contract && draft.contract.type==="suit" && draft.contract.level===lv && draft.contract.suit===s.key){
         clearContract(); return;
       }
-      if(outbid(v)) return;
+      /* an outbid cell is not a choosable bid, so tapping it clears rather
+         than doing nothing at all */
+      if(outbid(v)){ clearContract(); return; }
       startHand();
       draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
       draft.tricks = seedTricks(draft.contract); draft.defSplit = null; draft.scored = false;
@@ -1036,7 +1044,7 @@
       if(stdM && stdM.type==="misere" && stdM.id===id){
         clearContract(); return;
       }
-      if(outbid(mv)) return;
+      if(outbid(mv)){ clearContract(); return; }
       startHand();
       draft.contract = {type:"misere", id:id,
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
