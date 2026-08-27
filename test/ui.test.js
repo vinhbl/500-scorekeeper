@@ -1331,10 +1331,52 @@ function standing(d){
 /* landscape cells fill their row rather than hugging the number */
 {
   const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
-  ok(/table\.bids td \.cell\{[\s\S]*?position:absolute;inset:2px/.test(src),
-     "the cell is positioned against its td");
+  ok(/table\.bids td \.cell\{[\s\S]*?position:absolute;inset:3px;width:auto/.test(src),
+     "the cell is positioned against its td, with width:auto so both insets hold");
   ok(!/\.cell\{font-size:23px;padding:0;height:100%/.test(src),
      "height:100% is gone \u2014 it does not resolve inside a table cell in WebKit");
+}
+
+/* ---- the bid you just cleared stays faintly marked ---- */
+{
+  const marked = function(d){
+    const c = d.querySelector(".cell.was");
+    return c ? c.textContent.trim() : null;
+  };
+
+  [
+    ["the active bid",    function(d){ return cellVal(d, 8, 3); }],
+    ["an outbid cell",    function(d){ return cellVal(d, 6, 0); }],
+    ["a level number",    function(d){ return d.querySelector("#bidTable td.lvl"); }],
+    ["the sheet",         function(d){ return d.querySelector("#bidSheet"); }]
+  ].forEach(function(pair){
+    const { d } = boot();
+    click(d, cellVal(d, 8, 3));
+    click(d, pair[1](d));
+    eq(marked(d), "300",
+       "clearing by tapping " + pair[0] + " leaves the cleared bid marked");
+  });
+
+  {
+    const { d } = boot();
+    click(d, cellVal(d, 8, 3));
+    click(d, d.querySelector("#bidSheet"));
+    click(d, cellVal(d, 9, 2));
+    eq(marked(d), null, "choosing another bid drops the mark");
+    eq(d.querySelector('.cell[aria-pressed="true"]').textContent.trim(), "380",
+       "and selects the new one");
+  }
+  {
+    const { d } = boot();
+    click(d, d.querySelector('[data-id="misere"]'));
+    click(d, d.querySelector("#bidSheet"));
+    ok((marked(d) || "").indexOf("Mis") > -1, "misere is marked the same way");
+  }
+  {
+    const src = fs.readFileSync(path.join(__dirname, "..", "docs", "index.html"), "utf8");
+    ok(/\.cell\.was\{background:rgba\(14,26,43,\.10\)\}/.test(src),
+       "the mark is a quiet tint, not a selected state");
+  }
 }
 
 /* a full hand still records, with no confirm step in the way */

@@ -141,6 +141,10 @@
     opacity:.26;text-decoration:line-through;text-decoration-thickness:1px;
   }
   .cell.dead:hover{background:transparent}
+  /* The bid you just cleared stays faintly marked until something else is
+     chosen — otherwise clearing from elsewhere in the sheet gives no feedback
+     that anything happened. */
+  .cell.was{background:rgba(14,26,43,.10)}
   .cell.c-spades[aria-pressed="true"],.cell.c-clubs[aria-pressed="true"]{background:var(--black)}
   .cell.c-diamonds[aria-pressed="true"],.cell.c-hearts[aria-pressed="true"]{background:var(--red)}
   .cell.c-notrump[aria-pressed="true"]{background:var(--gold);color:var(--ink)}
@@ -152,7 +156,7 @@
 
   /* ---------- record hand ---------- */
   /* Record a hand is app chrome, not part of the score sheet, so it sits on the
-     navy ground. The rank reference reuses .panel but is reference material \u2014
+     navy ground. The rank reference reuses .panel but is reference material —
      .ref puts it back on bone, where its chips are drawn to live. */
   .panel{background:var(--ink-2);color:var(--bone);border:1px solid var(--line-lt);border-radius:3px;padding:14px}
   .panel.ref{background:var(--bone);color:var(--ink);border-color:var(--line)}
@@ -192,7 +196,7 @@
   .submit:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
   /* Named undo-hand, not undo: .undo is the log's small link, defined later in
      this sheet, and at equal specificity it was overriding this button's
-     padding and font-size \u2014 which is why Undo came out half the height. */
+     padding and font-size — which is why Undo came out half the height. */
   .submit.undo-hand{
     background:transparent;color:var(--bone);border-color:var(--line-lt);
   }
@@ -226,7 +230,7 @@
   /* ---- settings chips ----
      Three ways in, each stating its current state so a mid-game question is
      often answered without opening anything. */
-  /* No flex gap here \u2014 a collapsed disclosure is still a flex child, so a gap
+  /* No flex gap here — a collapsed disclosure is still a flex child, so a gap
      would double the space around any chip that has one. Margin on the chips
      keeps every interval identical whether a panel is open or shut. */
   .settings{margin-top:28px;display:flex;flex-direction:column}
@@ -243,7 +247,7 @@
   .schip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .schip[aria-expanded="true"]{border-color:rgba(239,233,220,.3)}
   .schip-ic{width:17px;height:17px;flex:none;color:rgba(239,233,220,.55)}
-  /* one line, always \u2014 the label and its state share a row and clip with an
+  /* one line, always — the label and its state share a row and clip with an
      ellipsis rather than wrapping and changing the chip's height */
   .schip-txt{
     flex:1;min-width:0;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
@@ -309,7 +313,7 @@
      so swiping never changes the height of the page you are reading. */
   .pager{
     display:flex;overflow-x:auto;overflow-y:hidden;
-    /* the gap only shows while the swipe is in flight \u2014 each page still fills
+    /* the gap only shows while the swipe is in flight — each page still fills
        the width once it snaps, so the settled position is unchanged */
     gap:14px;
     scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
@@ -333,7 +337,7 @@
     .pager-dots b{transition:opacity .18s,transform .18s}
   }
   .pager-dots b.on{opacity:.5;transform:scale(1.15)}
-  /* in portrait the standalone ranks slide is redundant \u2014 it lives in the pager */
+  /* in portrait the standalone ranks slide is redundant — it lives in the pager */
   .slide[data-slide="ranks"]{display:none}
 
   /* ===================== round reference =====================
@@ -392,14 +396,14 @@
   .rcard.tail{background:transparent;border-style:dashed;width:auto;padding:5px 8px}
   .rcard.tail .r{
     /* span both rows so the run centres in the box instead of sitting on the
-       suit line, and keep it on one line \u2014 "6 5 4 3 2" was breaking mid-run */
+       suit line, and keep it on one line — "6 5 4 3 2" was breaking mid-run */
     grid-row:1 / -1;align-self:center;white-space:nowrap;
     font-size:9.5px;letter-spacing:.09em;color:rgba(14,26,43,.45);font-weight:500;
   }
   /* the joker mark is an inline svg — without an explicit box it renders at
      its intrinsic size, which is enormous */
   .jk{width:15px;height:15px;display:block}
-  /* Any subset of suits \u2014 four wrap to a 2\u00d72, two sit centred on one line,
+  /* Any subset of suits — four wrap to a 2\u00d72, two sit centred on one line,
      all at the same glyph size so the chip never looks lopsided. */
   .quad{
     display:flex;flex-wrap:wrap;justify-content:center;align-content:center;
@@ -459,13 +463,16 @@
     table.bids th.suit{font-size:27px}
     th.s-notrump{font-size:15px;letter-spacing:.04em}
     td.lvl{font-size:25px;width:46px}
-    /* A button with height:100% inside a table cell does not fill in WebKit \u2014
+    /* A button with height:100% inside a table cell does not fill in WebKit —
        the percentage has nothing definite to resolve against, so the cell hugged
        its number and left a gap above and below. Positioning it against the td
        fills the row exactly, whatever height that row settles at. */
     table.bids td{position:relative}
     table.bids td .cell{
-      position:absolute;inset:2px;padding:0;
+      /* width:auto is load-bearing: the base rule sets width:100%, which beats
+         the `right` half of inset and pushed each cell over its column edge —
+         cells touched sideways while the vertical inset held. */
+      position:absolute;inset:3px;width:auto;padding:0;
       display:flex;align-items:center;justify-content:center;
     }
     .cell{font-size:23px;border-radius:3px}
@@ -498,7 +505,7 @@
 
     (* ---- record a hand: two columns, sized to fit one slide ----
        Landscape is wide and short, so identity goes left and numbers right.
-       Nothing here may scroll \u2014 the whole point is one screen. *)
+       Nothing here may scroll — the whole point is one screen. *)
     .slide[data-slide="record"] .panel{
       flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;
       gap:0 22px;align-content:center;padding:14px 18px;
@@ -539,7 +546,7 @@
     .slide[data-slide="ranks"] .ref-pts{font-size:38px}
     .slide[data-slide="ranks"] .ref-pts span{font-size:13px}
     .slide[data-slide="ranks"] .rk-head{font-size:13px;margin-bottom:11px}
-    /* Fixed-size chips that wrap, same model as portrait \u2014 the ladder can be
+    /* Fixed-size chips that wrap, same model as portrait — the ladder can be
        nine to fifteen long, so it must be allowed a second row. */
     .slide[data-slide="ranks"] .cards{gap:7px;align-items:start}
     .slide[data-slide="ranks"] .rcard{
@@ -589,7 +596,7 @@
 
   /* ---- stepper rows ----
      One row per number: name left, minus / value / plus right. 34px targets
-     and a 20px value \u2014 deliberately compact, so four rows still fit a
+     and a 20px value — deliberately compact, so four rows still fit a
      landscape slide without scrolling. */
   .srow{
     display:flex;align-items:center;gap:10px;
@@ -701,9 +708,9 @@
        the wrapper is an ordinary block and changes nothing.
        `land` marks the three sections that appear in the landscape carousel:
        scores, bid table, card ranks. Recording a hand and the hands-played log
-       are portrait tasks for v0 \u2014 the landscape record layout is kept below,
+       are portrait tasks for v0 — the landscape record layout is kept below,
        commented out, in case a later release wants a fourth slide.
-       This class is the single source of truth \u2014 the CSS hides the rest and
+       This class is the single source of truth — the CSS hides the rest and
        app.js counts these for the dots. -->
   <div class="slide land" data-slide="score">
     <section class="board" id="board"></section>

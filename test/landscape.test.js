@@ -124,8 +124,11 @@ const block = (function(){
 {
   ok(/table\.bids td\{position:relative\}/.test(block),
      "the td is the positioning context");
-  ok(/table\.bids td \.cell\{[\s\S]*?position:absolute;inset:2px/.test(block),
+  ok(/table\.bids td \.cell\{[\s\S]*?position:absolute;inset:3px;width:auto/.test(block),
      "so the cell fills it exactly, whatever height the row settles at");
+  ok(/table\.bids td \.cell\{[\s\S]*?width:auto/.test(block),
+     "width:auto is required \u2014 the base .cell sets width:100%, which beats the " +
+     "`right` half of inset and pushes each cell over its column edge");
   ok(!/\.cell\{[^}]*height:100%/.test(block),
      "height:100% is gone \u2014 a percentage height has nothing definite to resolve " +
      "against inside a table cell, so the cell hugged its number");

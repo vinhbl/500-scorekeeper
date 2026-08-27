@@ -71,7 +71,25 @@
     return {contract:null, bidder:null, partner:undefined, tricks:null, defSplit:null, scored:false};
   }
 
+  /* Which bid was cleared last, so the table can keep it faintly marked.
+     Purely presentational, so it lives outside the saved state. */
+  var lastCleared = null;
+
+  function markCleared(c){
+    lastCleared = !c ? null
+      : (c.type === "misere" ? {type:"misere", id:c.id}
+                             : {type:"suit", level:c.level, suit:c.suit});
+  }
+
+  function wasCleared(kind, a, b){
+    if(!lastCleared || standingContract()) return false;
+    return kind === "misere"
+      ? (lastCleared.type === "misere" && lastCleared.id === a)
+      : (lastCleared.type === "suit" && lastCleared.level === a && lastCleared.suit === b);
+  }
+
   function clearContract(){
+    markCleared(draft.contract);
     draft.contract = null; draft.tricks = null; draft.defSplit = null;
     renderAll();
   }
@@ -531,7 +549,7 @@
       them:      t[1],
       usLabel:   S.sides[0].name,
       themLabel: S.sides[1].name,
-      /* the app owns the win rules \u2014 winOnBid and backDoor live here, and the
+      /* the app owns the win rules — winOnBid and backDoor live here, and the
          widget must not carry a second copy of them */
       winner:    o ? (o.type === "out" ? (o.side === 0 ? 1 : 0) : o.side) : -1,
       wentOut:   !!(o && o.type === "out")
@@ -565,7 +583,7 @@
       try { started = LA.start(payload); } catch(e){ laRunning = false; return; }
       if(started && started.then){
         started.then(function(r){
-          /* the user can refuse Live Activities \u2014 do not keep retrying */
+          /* the user can refuse Live Activities — do not keep retrying */
           if(r && r.started === false){ laRunning = false; return; }
           /* a first hand can also be a winning hand; end only once the activity
              actually exists, or there is nothing for ActivityKit to end */
@@ -647,7 +665,7 @@
 
     paintBoard(from);
 
-    /* already at the top, or paging the carousel \u2014 nothing to scroll */
+    /* already at the top, or paging the carousel — nothing to scroll */
     if(inCarousel() || top <= 0){ startCount(); return; }
 
     tween(SCROLL_MS, easeInOutCubic, function(e){
@@ -744,7 +762,8 @@
         var v = bidValue(lv,si);
         var sel = standing && standing.type==="suit" && standing.level===lv && standing.suit===s.key;
         var dead = !sel && outbid(v);
-        return '<td><button class="cell c-'+s.key+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
+        var was = wasCleared("suit", lv, s.key);
+        return '<td><button class="cell c-'+s.key+(dead?' dead':'')+(was?' was':'')+'" aria-pressed="'+(!!sel)+'"'+
           (dead?' aria-disabled="true"':'')+' '+
           'data-kind="suit" data-level="'+lv+'" data-suit="'+si+'" '+
           'aria-label="'+lv+' '+s.name+', '+v+' points'+(dead?', outbid':'')+'">'+v+'</button></td>';
@@ -757,7 +776,8 @@
     $("specials").innerHTML = specs.map(function(sp){
       var sel = standing && standing.type==="misere" && standing.id===sp.id;
       var dead = !sel && outbid(sp.value);
-      return '<button class="cell spec c-misere'+(dead?' dead':'')+'" aria-pressed="'+(!!sel)+'"'+
+      var wasM = wasCleared("misere", sp.id);
+      return '<button class="cell spec c-misere'+(dead?' dead':'')+(wasM?' was':'')+'" aria-pressed="'+(!!sel)+'"'+
         (dead?' aria-disabled="true"':'')+' data-kind="misere" data-id="'+sp.id+'"'+
         ' aria-label="'+sp.label+', '+sp.value+' points'+(dead?', outbid':'')+'">'+
         sp.label+'<b>'+sp.value+'</b></button>';
@@ -810,7 +830,7 @@
         return '<button class="chip" data-role="bidder" data-i="'+i+'" aria-pressed="'+(draft.bidder===i)+'"'+(locked?' disabled':'')+'>'+esc(sd.name)+'</button>';
       }).join("")+'</div></div>';
 
-    /* Partner picker \u2014 five players only, and always visible. Hiding it until a
+    /* Partner picker — five players only, and always visible. Hiding it until a
        bidder was chosen made the panel jump and hid half the question. */
     if(n === 5){
       html += '<div class="field"><span class="label">Playing with</span><div class="chips">'+
@@ -865,7 +885,7 @@
     fitChipRows();
   }
 
-  /* name on the left, minus / value / plus on the right \u2014 one row per number,
+  /* name on the left, minus / value / plus on the right — one row per number,
      so the control is the same shape whether there are two players or five */
   function stepperRow(name, value, role, side, min, max, plusOff, locked){
     var sideAttr = side==null ? "" : ' data-side="'+side+'"';
@@ -954,7 +974,7 @@
     }).join("");
   }
 
-  /* The table is described in players, not sides \u2014 "2 sides" meant four people
+  /* The table is described in players, not sides — "2 sides" meant four people
      at the table, which nobody says out loud. Internally seats stays 2/3/5. */
   var PLAYER_COUNT = {2:4, 3:3, 5:5};
   function playerLabel(seats){ return PLAYER_COUNT[seats] + "-player"; }
@@ -1032,7 +1052,7 @@
       /* an outbid cell is not a choosable bid, so tapping it clears rather
          than doing nothing at all */
       if(outbid(v)){ clearContract(); return; }
-      startHand();
+      startHand(); lastCleared = null;
       draft.contract = {type:"suit", level:lv, suit:s.key, label:lv+" "+s.glyph, value:v};
       draft.tricks = seedTricks(draft.contract); draft.defSplit = null; draft.scored = false;
       renderBidTable(); renderRecord(); renderReference(); return;
@@ -1045,7 +1065,7 @@
         clearContract(); return;
       }
       if(outbid(mv)){ clearContract(); return; }
-      startHand();
+      startHand(); lastCleared = null;
       draft.contract = {type:"misere", id:id,
         label: id==="open" ? "Open mis\u00e8re" : "Mis\u00e8re",
         value: mv};
@@ -1110,7 +1130,7 @@
       if(b.disabled) return;
       var want = +b.dataset.i;
       if(want === S.game.seats) return;
-      /* Changing the table size restarts the game \u2014 hands scored for two sides
+      /* Changing the table size restarts the game — hands scored for two sides
          mean nothing at five \u2014 so ask first if anything is on the sheet. */
       if(S.hands.length){
         openDialog({
@@ -1175,7 +1195,7 @@
     if(typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia("(orientation:landscape) and (max-height:600px) and (pointer:coarse)").matches;
   }
-  /* Only sections marked `land` page in landscape \u2014 the class in the markup is
+  /* Only sections marked `land` page in landscape — the class in the markup is
      the single source of truth, so the dot count can never drift from the CSS. */
   function slideEls(){
     return Array.prototype.slice.call(document.querySelectorAll("main.wrap .slide.land"));
@@ -1196,7 +1216,7 @@
     if(!dots || dots.hidden) return;
     var wrap = document.querySelector("main.wrap");
     if(!wrap) return;
-    /* the carousel pages vertically \u2014 the dot rail runs down the right edge.
+    /* the carousel pages vertically — the dot rail runs down the right edge.
        Before first layout clientHeight is 0; fall back to the first slide
        rather than leaving every dot unlit. */
     var i = wrap.clientHeight ? Math.round(wrap.scrollTop / wrap.clientHeight) : 0;
